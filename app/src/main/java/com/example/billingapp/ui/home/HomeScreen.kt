@@ -37,9 +37,11 @@ import com.example.billingapp.ui.components.FilterMenuButton
 import com.example.billingapp.ui.components.MenuButton
 import com.example.billingapp.ui.components.PaginationBar
 import com.example.billingapp.ui.components.RoundActionButton
+import com.example.billingapp.ui.components.SearchField
 import com.example.billingapp.ui.components.SegmentedToggle
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.invoiceGroups
+import com.example.billingapp.ui.history.matches
 import com.example.billingapp.util.LAST_DAYS_CHOICES
 import com.example.billingapp.util.SalesPeriod
 import com.example.billingapp.util.formatRupees
@@ -68,6 +70,7 @@ fun HomeScreen(
 
     // null = still loading, so we don't flash "No bills" before the query returns.
     var invoices by remember { mutableStateOf<List<Invoice>?>(null) }
+    var query by remember { mutableStateOf("") }
     var pendingDelete by remember { mutableStateOf<Invoice?>(null) }
     var reload by remember { mutableStateOf(0) }
     var pageNumber by remember { mutableStateOf(1) }
@@ -81,6 +84,11 @@ fun HomeScreen(
         invoices = db.invoiceDao()
             .getInvoicesBetween(start, end)
             .sortedByDescending { it.createdAt }
+    }
+
+    // What the search leaves of the period's bills; the same matching as the History screen.
+    val shown = remember(invoices, query) {
+        invoices?.filter { it.matches(query) }
     }
 
     // Back closes the side menu first, and only then leaves the app.
@@ -181,32 +189,57 @@ fun HomeScreen(
                         }
                     }
 
-                } else if (loaded != null) {
+                } else if (shown != null) {
 
                     item {
                         SalesSummary(
-                            invoices = loaded,
+                            invoices = shown,
                             title = if (days == null) "Sales" else lastDaysLabel(days)
                         )
                     }
 
-                    // The summary above counts every bill of the period; the list shows 10 at a time.
-                    val page = paginate(loaded, pageNumber)
-
-                    invoiceGroups(
-                        invoices = page.items,
-                        onInvoiceClick = onInvoiceClick,
-                        onDeleteClick = { pendingDelete = it }
-                    )
-
+                    // Right where the list starts, above its first day heading ("TODAY").
                     item {
-                        PaginationBar(
-                            page = page,
-                            onPageChange = {
-                                pageNumber = it
-                                scope.launch { listState.scrollToItem(0) }
-                            }
+                        SearchField(
+                            value = query,
+                            onValueChange = {
+                                query = it
+                                pageNumber = 1
+                            },
+                            placeholder = "Name, phone or invoice #",
+                            modifier = Modifier.padding(top = 12.dp)
                         )
+                    }
+
+                    if (shown.isEmpty()) {
+
+                        item {
+                            EmptyState(
+                                title = "No matches",
+                                message = "Nothing found for \"${query.trim()}\". Try a longer range."
+                            )
+                        }
+
+                    } else {
+
+                        // The summary above counts every match; the list shows 10 at a time.
+                        val page = paginate(shown, pageNumber)
+
+                        invoiceGroups(
+                            invoices = page.items,
+                            onInvoiceClick = onInvoiceClick,
+                            onDeleteClick = { pendingDelete = it }
+                        )
+
+                        item {
+                            PaginationBar(
+                                page = page,
+                                onPageChange = {
+                                    pageNumber = it
+                                    scope.launch { listState.scrollToItem(0) }
+                                }
+                            )
+                        }
                     }
                 }
             }
