@@ -2,6 +2,8 @@ package com.example.billingapp
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [
@@ -10,7 +12,7 @@ import androidx.room.RoomDatabase
         Invoice::class,
         InvoiceItem::class
     ],
-    version = 6
+    version = 7
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -21,4 +23,17 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun invoiceDao(): InvoiceDao
 
     abstract fun invoiceItemDao(): InvoiceItemDao
+}
+
+/**
+ * v7 adds an optional email to customers. Existing rows get an empty email, nothing is lost.
+ *
+ * Every future schema change needs a migration like this one; the database is built without
+ * a "wipe and start again" fallback, so a missing migration fails loudly instead of silently
+ * deleting the shop's invoices.
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE customers ADD COLUMN email TEXT NOT NULL DEFAULT ''")
+    }
 }

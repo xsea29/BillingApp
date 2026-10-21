@@ -11,5 +11,8 @@ data class Customer(
 
     val name: String,
 
-    val phone: String
+    val phone: String,
+
+    // Optional; empty when not given.
+    val email: String = ""
 )

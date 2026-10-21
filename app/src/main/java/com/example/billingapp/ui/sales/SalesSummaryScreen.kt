@@ -44,7 +44,9 @@ import com.example.billingapp.InvoiceItem
 import com.example.billingapp.SalesReportPdfGenerator
 import com.example.billingapp.ui.components.BorderedCard
 import com.example.billingapp.ui.components.EmptyState
+import com.example.billingapp.ui.components.MiniStat
 import com.example.billingapp.ui.components.RoundActionButton
+import com.example.billingapp.ui.components.SectionHeading
 import com.example.billingapp.ui.components.SegmentedToggle
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TextAction
@@ -286,21 +288,6 @@ private fun SalesContent(data: SalesData) {
 private const val PRODUCTS_SHOWN = 6
 
 @Composable
-private fun SectionHeading(text: String, trailing: String? = null) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 32.dp, bottom = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        SmallCaps(text = text, color = MaterialTheme.colorScheme.onSurface)
-        if (trailing != null) {
-            SmallCaps(text = trailing)
-        }
-    }
-}
-
-@Composable
 private fun OverviewCard(report: SalesReport, period: SalesPeriod) {
     // Starts on "now" (this hour / today); moves when the chart is tapped or dragged.
     var selected by remember(report) {
@@ -373,18 +360,6 @@ private fun DeltaLine(current: Double, previous: Double, previousLabel: String) 
         color = color,
         modifier = Modifier.padding(top = 4.dp)
     )
-}
-
-@Composable
-private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        SmallCaps(text = label)
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1
-        )
-    }
 }
 
 @Composable

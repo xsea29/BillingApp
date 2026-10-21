@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,17 +64,29 @@ fun ArrowRow(
             }
         }
 
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .background(colors.surfaceVariant, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "→",
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
+        ArrowCircle()
+    }
+}
+
+/** Small circle with an arrow in it; marks something you can open. Grey by default. */
+@Composable
+fun ArrowCircle(
+    modifier: Modifier = Modifier,
+    glyph: String = "→",
+    container: Color = MaterialTheme.colorScheme.surfaceVariant,
+    content: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Box(
+        modifier = modifier
+            .size(36.dp)
+            .background(container, CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = glyph,
+            style = MaterialTheme.typography.titleMedium,
+            color = content
+        )
     }
 }
 

@@ -18,30 +18,38 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.billingapp.Invoice
 import com.example.billingapp.util.formatRupees
 import com.example.billingapp.util.formatTime
 
-/** Rounded square holding the first letter of a name, in the serif font. */
+/** Shape holding the first letter of a name, in the serif font. Rounded square by default. */
 @Composable
 fun InitialAvatar(
     name: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    size: Dp = 44.dp,
+    shape: Shape = RoundedCornerShape(12.dp),
+    textStyle: TextStyle = MaterialTheme.typography.titleLarge,
+    background: Color = MaterialTheme.colorScheme.surfaceVariant
 ) {
     val initial = name.trim().firstOrNull()?.uppercase() ?: "#"
 
     Box(
         modifier = modifier
-            .size(44.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .size(size)
+            .clip(shape)
+            .background(background),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = initial,
-            style = MaterialTheme.typography.titleLarge
+            style = textStyle
         )
     }
 }
