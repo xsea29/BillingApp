@@ -9,6 +9,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
+import com.example.billingapp.ui.splash.SplashGate
 import com.example.billingapp.ui.theme.BillingAppTheme
 import kotlinx.coroutines.launch
 
@@ -57,7 +58,9 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    BillingApp(db)
+                    SplashGate {
+                        BillingApp(db)
+                    }
                 }
             }
         }
