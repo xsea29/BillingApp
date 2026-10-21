@@ -15,6 +15,9 @@ val Danger = Color(0xFFD03B3B)
 val BarSoft = Color(0xFFDDD5F8)
 val BarPurple = Color(0xFF8E78EE)
 
+// The price strip on product cards.
+val SoftGreen = Color(0xFFE3F4E8)
+
 // The crown and star on the top category / best seller tiles.
 val AwardGold = Color(0xFFE0A000)
 

@@ -13,5 +13,12 @@ data class Product(
 
     val price: Double,
 
-    val category: String
+    val category: String,
+
+    /**
+     * How many are in stock, or null when this product isn't counted. Billing takes from it
+     * (and deleting or editing a bill gives back), so it can go below zero if more was billed
+     * than was entered; the screens show that as 0.
+     */
+    val stock: Int? = null
 )

@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         Invoice::class,
         InvoiceItem::class
     ],
-    version = 8
+    version = 9
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -45,5 +45,15 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
 val MIGRATION_7_8 = object : Migration(7, 8) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE invoices ADD COLUMN customerId INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+/**
+ * v9: products can have a stock count. It is optional, so existing products get no value (null)
+ * and carry on exactly as before.
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE products ADD COLUMN stock INTEGER")
     }
 }

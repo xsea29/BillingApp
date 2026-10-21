@@ -42,6 +42,7 @@ import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SearchField
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TopRow
+import com.example.billingapp.ui.theme.SoftGreen
 import com.example.billingapp.util.formatRupees
 import kotlinx.coroutines.launch
 
@@ -84,13 +85,14 @@ fun ProductsScreen(
             existing = current.product,
             categories = categories,
             onBackClick = { editor = null },
-            onSave = { name, price, categoryName ->
+            onSave = { name, price, categoryName, stock ->
                 scope.launch {
                     val saved = Product(
                         id = current.product?.id ?: 0,
                         name = name,
                         price = price,
-                        category = categoryName
+                        category = categoryName,
+                        stock = stock
                     )
 
                     if (current.product == null) {
@@ -230,7 +232,8 @@ fun ProductsScreen(
 
 /**
  * Outlined card: a grey block with the product's first letter (standing in for a photo),
- * then category, name and a price pill. Name always takes two lines so cards in a row line up.
+ * then category, name, "Qty. 5" at the right (only when the product is counted) and a light-green
+ * price strip. Name takes two lines and the Qty line always has its room, so cards in a row line up.
  */
 @Composable
 private fun ProductCard(
@@ -285,10 +288,28 @@ private fun ProductCard(
 
         Box(
             modifier = Modifier
-                .padding(top = 12.dp)
+                .fillMaxWidth()
+                .height(26.dp)
+                .padding(top = 6.dp),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            product.stock?.let { stock ->
+                val count = stock.coerceAtLeast(0)
+
+                Text(
+                    text = "Qty. $count",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (count == 0) colors.error else colors.onSurfaceVariant
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .padding(top = 2.dp)
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.medium)
-                .background(colors.surfaceVariant)
+                .background(SoftGreen)
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
             Text(
