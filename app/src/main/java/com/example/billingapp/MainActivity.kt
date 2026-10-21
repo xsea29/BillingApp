@@ -1,6 +1,9 @@
 package com.example.billingapp
 
 import android.os.Bundle
+import android.os.SystemClock
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,9 +12,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
-import com.example.billingapp.ui.splash.SplashGate
 import com.example.billingapp.ui.theme.BillingAppTheme
 import kotlinx.coroutines.launch
+
+/** How long the start-up screen (the word "Monginis") stays up. */
+private const val STARTUP_SCREEN_MILLIS = 2000L
 
 class MainActivity : ComponentActivity() {
 
@@ -58,11 +63,34 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    SplashGate {
-                        BillingApp(db)
-                    }
+                    BillingApp(db)
                 }
             }
         }
+
+        // Only when the app is starting, not when the phone is turned and the screen rebuilt.
+        if (savedInstanceState == null) holdStartupScreen()
+    }
+
+    /**
+     * Keeps the start-up screen up for [STARTUP_SCREEN_MILLIS] by not letting the app draw its
+     * first frame until then. The word "Monginis" stays the system's own start-up screen the
+     * whole time, so it can't jump: a second copy drawn by the app sits between the status and
+     * navigation bars, while the system's is centred on the whole screen, and the word dropped
+     * a few dp when one replaced the other. The app still sets itself up behind the screen, so
+     * the home page is ready the moment it goes.
+     */
+    private fun holdStartupScreen() {
+        val content = findViewById<View>(android.R.id.content)
+        val start = SystemClock.uptimeMillis()
+
+        content.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (SystemClock.uptimeMillis() - start < STARTUP_SCREEN_MILLIS) return false
+
+                content.viewTreeObserver.removeOnPreDrawListener(this)
+                return true
+            }
+        })
     }
 }
