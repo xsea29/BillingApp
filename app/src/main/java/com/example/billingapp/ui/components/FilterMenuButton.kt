@@ -37,27 +37,15 @@ fun <T> FilterMenuButton(
     contentDescription: String,
     modifier: Modifier = Modifier
 ) {
-    val colors = MaterialTheme.colorScheme
     var open by remember { mutableStateOf(false) }
-    val active = selected != null
 
     Box(modifier = modifier) {
 
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(if (active) colors.primary else colors.surfaceVariant)
-                .clickable(onClickLabel = contentDescription, role = Role.Button) { open = true },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_filter),
-                contentDescription = contentDescription,
-                tint = if (active) colors.onPrimary else colors.onSurface,
-                modifier = Modifier.size(24.dp)
-            )
-        }
+        FilterIconButton(
+            active = selected != null,
+            contentDescription = contentDescription,
+            onClick = { open = true }
+        )
 
         DropdownMenu(
             expanded = open,
@@ -74,5 +62,36 @@ fun <T> FilterMenuButton(
                 )
             }
         }
+    }
+}
+
+/**
+ * The square filter icon on its own: grey normally, black while a filter is [active]. Same
+ * height and corners as [SegmentedToggle]. Use it directly when the filter isn't a drop-down
+ * (a date picker, say).
+ */
+@Composable
+fun FilterIconButton(
+    active: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = MaterialTheme.colorScheme
+
+    Box(
+        modifier = modifier
+            .size(52.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (active) colors.primary else colors.surfaceVariant)
+            .clickable(onClickLabel = contentDescription, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_filter),
+            contentDescription = contentDescription,
+            tint = if (active) colors.onPrimary else colors.onSurface,
+            modifier = Modifier.size(24.dp)
+        )
     }
 }

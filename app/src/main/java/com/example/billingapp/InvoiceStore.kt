@@ -5,8 +5,7 @@ import androidx.room.withTransaction
 /**
  * Saves a new invoice and all its lines in one transaction, so a half-saved bill
  * can never end up in the database. The bill's customer is added to the customer list too,
- * if new (see [customerIdFor]), and what it sold is taken out of product stock. Returns the
- * new invoice number.
+ * if new (see [customerIdFor]). Returns the new invoice number.
  *
  * The number is chosen here (see [nextInvoiceNumber]) rather than left to the database's own
  * counter, which never goes backwards: after deleting invoice #1 it would hand out #2 while the
@@ -30,14 +29,13 @@ suspend fun AppDatabase.saveBill(bill: Bill): Int = withTransaction {
     )
 
     insertLines(invoiceId, bill)
-    changeStock(stockChanges(before = emptyMap(), after = bill.piecesByName()))
 
     invoiceId
 }
 
 /**
  * Changes an existing invoice to match [bill]: the invoice row is updated in place (same
- * number) and its lines are replaced; product stock moves by what changed. All or nothing.
+ * number) and its lines are replaced. All or nothing.
  */
 suspend fun AppDatabase.updateBill(invoiceId: Int, bill: Bill) = withTransaction {
 
@@ -57,26 +55,14 @@ suspend fun AppDatabase.updateBill(invoiceId: Int, bill: Bill) = withTransaction
     // Never carry on if the invoice isn't there: that would leave lines belonging to nothing.
     check(updated == 1) { "Invoice #$invoiceId no longer exists" }
 
-    // Stock moves by the difference between the old lines and the new ones.
-    val before = invoiceItemDao().getItemsByInvoiceId(invoiceId).piecesByName()
-
     invoiceItemDao().deleteByInvoiceId(invoiceId)
     insertLines(invoiceId, bill)
-    changeStock(stockChanges(before = before, after = bill.piecesByName()))
 }
 
-/** Removes an invoice together with its lines, and gives its pieces back to stock. All or nothing. */
+/** Removes an invoice together with its lines. All or nothing. */
 suspend fun AppDatabase.deleteInvoice(invoiceId: Int) = withTransaction {
-    val before = invoiceItemDao().getItemsByInvoiceId(invoiceId).piecesByName()
-
     invoiceItemDao().deleteByInvoiceId(invoiceId)
     invoiceDao().deleteById(invoiceId)
-    changeStock(stockChanges(before = before, after = emptyMap()))
-}
-
-/** Applies [changes] (see [stockChanges]) to the products that have a stock count. */
-private suspend fun AppDatabase.changeStock(changes: Map<String, Int>) {
-    changes.forEach { (name, change) -> productDao().adjustStock(name, change) }
 }
 
 private suspend fun AppDatabase.insertLines(invoiceId: Int, bill: Bill) {

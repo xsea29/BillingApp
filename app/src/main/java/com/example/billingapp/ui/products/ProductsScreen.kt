@@ -85,14 +85,13 @@ fun ProductsScreen(
             existing = current.product,
             categories = categories,
             onBackClick = { editor = null },
-            onSave = { name, price, categoryName, stock ->
+            onSave = { name, price, categoryName ->
                 scope.launch {
                     val saved = Product(
                         id = current.product?.id ?: 0,
                         name = name,
                         price = price,
-                        category = categoryName,
-                        stock = stock
+                        category = categoryName
                     )
 
                     if (current.product == null) {
@@ -232,8 +231,8 @@ fun ProductsScreen(
 
 /**
  * Outlined card: a grey block with the product's first letter (standing in for a photo),
- * then category, name, "Qty. 5" at the right (only when there is some in stock) and a light-green
- * price strip. Name takes two lines and the Qty line always has its room, so cards in a row line up.
+ * then category, name and a light-green price strip. Name always takes two lines so cards in a
+ * row line up.
  */
 @Composable
 private fun ProductCard(
@@ -288,24 +287,7 @@ private fun ProductCard(
 
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(26.dp)
-                .padding(top = 6.dp),
-            contentAlignment = Alignment.CenterEnd
-        ) {
-            // Nothing at 0, and nothing for a product that isn't counted.
-            product.stock?.takeIf { it > 0 }?.let { stock ->
-                Text(
-                    text = "Qty. $stock",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colors.onSurfaceVariant
-                )
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .padding(top = 2.dp)
+                .padding(top = 12.dp)
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.medium)
                 .background(SoftGreen)

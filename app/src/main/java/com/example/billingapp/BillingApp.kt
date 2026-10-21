@@ -12,6 +12,7 @@ import com.example.billingapp.ui.home.HomeScreen
 import com.example.billingapp.ui.newbill.NewBillScreen
 import com.example.billingapp.ui.products.ProductsScreen
 import com.example.billingapp.ui.sales.SalesSummaryScreen
+import com.example.billingapp.ui.stock.StocksScreen
 
 /** Decides which screen is showing, and where "back" from an invoice should return to. */
 @Composable
@@ -63,6 +64,9 @@ fun BillingApp(db: AppDatabase) {
             },
             onProductsClick = {
                 currentScreen = "products"
+            },
+            onStocksClick = {
+                currentScreen = "stocks"
             }
         )
 
@@ -84,6 +88,13 @@ fun BillingApp(db: AppDatabase) {
         )
 
         "products" -> ProductsScreen(
+            db = db,
+            onBackClick = {
+                currentScreen = "home"
+            }
+        )
+
+        "stocks" -> StocksScreen(
             db = db,
             onBackClick = {
                 currentScreen = "home"

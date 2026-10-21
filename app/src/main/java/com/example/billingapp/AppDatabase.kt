@@ -10,9 +10,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         Customer::class,
         Product::class,
         Invoice::class,
-        InvoiceItem::class
+        InvoiceItem::class,
+        StockEntry::class
     ],
-    version = 9
+    version = 10
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -23,6 +24,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun invoiceDao(): InvoiceDao
 
     abstract fun invoiceItemDao(): InvoiceItemDao
+
+    abstract fun stockDao(): StockDao
 }
 
 /**
@@ -49,11 +52,46 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
 }
 
 /**
- * v9: products can have a stock count. It is optional, so existing products get no value (null)
- * and carry on exactly as before.
+ * v9: an earlier version of stock kept a count on each product. v10 replaces it (see below), so
+ * this step only exists for phones that are still on v8.
  */
 val MIGRATION_8_9 = object : Migration(8, 9) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE products ADD COLUMN stock INTEGER")
+    }
+}
+
+/**
+ * v10: stock becomes a list of what came in, per day ([StockEntry]); what was sold is read from
+ * the invoices. Any count already typed on a product becomes an entry dated now, and the
+ * products table goes back to its four columns (SQLite can't drop one in place, so it is
+ * rebuilt with every product copied over, ids included).
+ */
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS stock_entries (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "productName TEXT NOT NULL, " +
+                    "quantity INTEGER NOT NULL, " +
+                    "addedAt INTEGER NOT NULL)"
+        )
+
+        db.execSQL(
+            "INSERT INTO stock_entries (productName, quantity, addedAt) " +
+                    "SELECT name, stock, CAST(strftime('%s', 'now') AS INTEGER) * 1000 " +
+                    "FROM products WHERE stock IS NOT NULL AND stock > 0"
+        )
+
+        db.execSQL(
+            "CREATE TABLE products_new (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "name TEXT NOT NULL, " +
+                    "price REAL NOT NULL, " +
+                    "category TEXT NOT NULL)"
+        )
+        db.execSQL("INSERT INTO products_new (id, name, price, category) SELECT id, name, price, category FROM products")
+        db.execSQL("DROP TABLE products")
+        db.execSQL("ALTER TABLE products_new RENAME TO products")
     }
 }

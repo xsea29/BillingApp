@@ -22,7 +22,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -31,29 +30,26 @@ import com.example.billingapp.Product
 import com.example.billingapp.ui.components.ConfirmDialog
 import com.example.billingapp.ui.components.PillChip
 import com.example.billingapp.ui.components.SmallCaps
-import com.example.billingapp.ui.components.StockStepper
 import com.example.billingapp.ui.components.TopRow
-import com.example.billingapp.util.stockShown
-import com.example.billingapp.util.stockToSave
 
 /**
  * Add a product ([existing] = null) or change one. Category is free text, with the
- * categories already in use offered as chips so spellings stay consistent. Quantity (how many are
- * in stock) is a "- 12 +" stepper; a product left at 0 is simply not counted.
+ * categories already in use offered as chips so spellings stay consistent. [initialName] fills
+ * the name when a new product is started from a search that found nothing.
  */
 @Composable
 fun ProductForm(
     existing: Product?,
     categories: List<String>,
+    initialName: String = "",
     onBackClick: () -> Unit,
-    onSave: (name: String, price: Double, category: String, stock: Int?) -> Unit,
+    onSave: (name: String, price: Double, category: String) -> Unit,
     onDelete: () -> Unit
 ) {
-    var name by remember { mutableStateOf(existing?.name.orEmpty()) }
+    var name by remember { mutableStateOf(existing?.name ?: initialName) }
     var price by remember { mutableStateOf(existing?.let { priceToInput(it.price) }.orEmpty()) }
     var category by remember { mutableStateOf(existing?.category.orEmpty()) }
 
-    var quantity by remember { mutableStateOf(stockShown(existing?.stock)) }
     var confirmDelete by remember { mutableStateOf(false) }
 
     val parsedPrice = parsePrice(price)
@@ -132,32 +128,6 @@ fun ProductForm(
                 }
             }
 
-            // Like a cart line: the name on the left, the "- 12 +" at the far right.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 28.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Quantity",
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                StockStepper(
-                    quantity = quantity,
-                    onChange = { quantity = it }
-                )
-            }
-
-            Text(
-                text = "How many you have now. Billing takes from it. Leave 0 for items you don't count.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-
             if (existing != null) {
                 TextButton(
                     onClick = { confirmDelete = true },
@@ -174,7 +144,7 @@ fun ProductForm(
         Button(
             onClick = {
                 if (parsedPrice != null) {
-                    onSave(name.trim(), parsedPrice, matchCategory(category, categories), stockToSave(existing?.stock, quantity))
+                    onSave(name.trim(), parsedPrice, matchCategory(category, categories))
                 }
             },
             enabled = canSave,

@@ -61,7 +61,8 @@ fun HomeScreen(
     onInvoiceHistoryClick: () -> Unit,
     onSalesSummaryClick: () -> Unit,
     onCustomersClick: () -> Unit,
-    onProductsClick: () -> Unit
+    onProductsClick: () -> Unit,
+    onStocksClick: () -> Unit
 ) {
     var period by remember { mutableStateOf(SalesPeriod.Today) }
 
@@ -104,7 +105,8 @@ fun HomeScreen(
                     DrawerEntry("Invoice History", onInvoiceHistoryClick),
                     DrawerEntry("Sales Summary", onSalesSummaryClick),
                     DrawerEntry("Customers", onCustomersClick),
-                    DrawerEntry("Products", onProductsClick)
+                    DrawerEntry("Products", onProductsClick),
+                    DrawerEntry("Stocks", onStocksClick)
                 )
             )
         }

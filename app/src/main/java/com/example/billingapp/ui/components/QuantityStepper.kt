@@ -111,18 +111,19 @@ fun StockStepper(
     }
 }
 
-/** Round grey "+" used when a product isn't in the bill yet. */
+/** Round grey "+" used when a product isn't in the bill (or the stock list) yet. */
 @Composable
 fun AddCircleButton(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    description: String = "Add to bill"
 ) {
     Box(
         modifier = modifier
             .size(40.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .semantics { contentDescription = "Add to bill" }
+            .semantics { contentDescription = description }
             .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
