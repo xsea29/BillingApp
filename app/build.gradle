@@ -53,6 +53,14 @@ android {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
     }
+
+    // The built file is "monginis.apk", not "app-debug.apk". Debug and release each keep their
+    // own folder (build/outputs/apk/debug and .../release), so the two names never clash.
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "monginis.apk"
+        }
+    }
 }
 
 dependencies {
