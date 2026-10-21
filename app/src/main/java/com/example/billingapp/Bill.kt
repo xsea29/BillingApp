@@ -5,6 +5,13 @@ import com.example.billingapp.util.roundToPaise
 const val GST_RATE = 0.05
 
 /**
+ * The number the next new invoice gets: one more than the highest number in use, or 1 if there
+ * are none. The New Bill header and the save both use this, so the number you see is the number
+ * you get, even after invoices were deleted.
+ */
+fun nextInvoiceNumber(lastId: Int?): Int = (lastId ?: 0) + 1
+
+/**
  * A bill that is still being made. Immutable: every change returns a new [Bill],
  * so the screen can just keep it in one piece of state.
  */

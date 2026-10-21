@@ -11,8 +11,9 @@ interface InvoiceDao {
     @Insert
     suspend fun insert(invoice: Invoice): Long
 
+    // Returns how many invoices were changed: 1, or 0 if there is no invoice with that number.
     @Update
-    suspend fun update(invoice: Invoice)
+    suspend fun update(invoice: Invoice): Int
 
     @Query("DELETE FROM invoices WHERE id = :invoiceId")
     suspend fun deleteById(invoiceId: Int)

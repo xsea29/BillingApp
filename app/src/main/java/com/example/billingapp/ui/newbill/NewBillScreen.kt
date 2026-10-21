@@ -34,6 +34,7 @@ import com.example.billingapp.BillItem
 import com.example.billingapp.Customer
 import com.example.billingapp.GST_RATE
 import com.example.billingapp.billFromInvoice
+import com.example.billingapp.nextInvoiceNumber
 import com.example.billingapp.Product
 import com.example.billingapp.saveBill
 import com.example.billingapp.updateBill
@@ -74,14 +75,14 @@ fun NewBillScreen(
 
     var products by remember { mutableStateOf<List<Product>>(emptyList()) }
     var customers by remember { mutableStateOf<List<Customer>>(emptyList()) }
-    var nextInvoiceNumber by remember { mutableStateOf<Int?>(null) }
+    var newInvoiceNumber by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(Unit) {
         products = db.productDao().getAllProducts()
         customers = db.customerDao().getAllCustomers()
 
         if (editInvoiceId == null) {
-            nextInvoiceNumber = (db.invoiceDao().getLastInvoiceId() ?: 0) + 1
+            newInvoiceNumber = nextInvoiceNumber(db.invoiceDao().getLastInvoiceId())
         } else {
             bill = billFromInvoice(
                 invoice = db.invoiceDao().getInvoiceById(editInvoiceId),
@@ -105,7 +106,7 @@ fun NewBillScreen(
             Step.Bill -> BillPage(
                 bill = bill,
                 editing = editing,
-                invoiceNumber = editInvoiceId ?: nextInvoiceNumber,
+                invoiceNumber = editInvoiceId ?: newInvoiceNumber,
                 onQuantityChange = { product, quantity ->
                     bill = bill.withQuantity(product, quantity)
                 },

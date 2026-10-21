@@ -4,12 +4,19 @@ import androidx.room.withTransaction
 
 /**
  * Saves a new invoice and all its lines in one transaction, so a half-saved bill
- * can never end up in the database. Returns the new invoice id.
+ * can never end up in the database. Returns the new invoice number.
+ *
+ * The number is chosen here (see [nextInvoiceNumber]) rather than left to the database's own
+ * counter, which never goes backwards: after deleting invoice #1 it would hand out #2 while the
+ * New Bill page had promised #1.
  */
 suspend fun AppDatabase.saveBill(bill: Bill): Int = withTransaction {
 
-    val invoiceId = invoiceDao().insert(
+    val invoiceId = nextInvoiceNumber(invoiceDao().getLastInvoiceId())
+
+    invoiceDao().insert(
         Invoice(
+            id = invoiceId,
             customerName = bill.customerName,
             phoneNumber = bill.customerPhone,
             subtotal = bill.subtotal,
@@ -17,7 +24,7 @@ suspend fun AppDatabase.saveBill(bill: Bill): Int = withTransaction {
             total = bill.total,
             createdAt = bill.createdAt
         )
-    ).toInt()
+    )
 
     insertLines(invoiceId, bill)
 
@@ -30,7 +37,7 @@ suspend fun AppDatabase.saveBill(bill: Bill): Int = withTransaction {
  */
 suspend fun AppDatabase.updateBill(invoiceId: Int, bill: Bill) = withTransaction {
 
-    invoiceDao().update(
+    val updated = invoiceDao().update(
         Invoice(
             id = invoiceId,
             customerName = bill.customerName,
@@ -41,6 +48,9 @@ suspend fun AppDatabase.updateBill(invoiceId: Int, bill: Bill) = withTransaction
             createdAt = bill.createdAt
         )
     )
+
+    // Never carry on if the invoice isn't there: that would leave lines belonging to nothing.
+    check(updated == 1) { "Invoice #$invoiceId no longer exists" }
 
     invoiceItemDao().deleteByInvoiceId(invoiceId)
     insertLines(invoiceId, bill)
