@@ -15,18 +15,22 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.billingapp.AppDatabase
 import com.example.billingapp.Invoice
+import com.example.billingapp.deleteInvoice
 import com.example.billingapp.ui.components.EmptyState
+import com.example.billingapp.ui.components.DeleteInvoiceDialog
 import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SearchField
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TopRow
 import com.example.billingapp.ui.components.invoiceGroups
+import kotlinx.coroutines.launch
 
 /** Every invoice ever made, newest first, with search by customer, phone or invoice number. */
 @Composable
@@ -41,9 +45,14 @@ fun InvoiceHistoryScreen(
     // null = still loading.
     var invoices by remember { mutableStateOf<List<Invoice>?>(null) }
     var query by remember { mutableStateOf("") }
+    var pendingDelete by remember { mutableStateOf<Invoice?>(null) }
+    var reload by remember { mutableStateOf(0) }
+    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
-        invoices = db.invoiceDao().getAllInvoices()
+    LaunchedEffect(reload) {
+        // By bill date, not by number: a bill entered late under an earlier date belongs
+        // further down the list, with its own day.
+        invoices = db.invoiceDao().getAllInvoices().sortedByDescending { it.createdAt }
     }
 
     val shown = remember(invoices, query) {
@@ -110,7 +119,11 @@ fun InvoiceHistoryScreen(
                         )
                     }
 
-                    invoiceGroups(shown, onInvoiceClick)
+                    invoiceGroups(
+                        invoices = shown,
+                        onInvoiceClick = onInvoiceClick,
+                        onDeleteClick = { pendingDelete = it }
+                    )
                 }
             }
         }
@@ -121,6 +134,20 @@ fun InvoiceHistoryScreen(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(24.dp)
+        )
+    }
+
+    pendingDelete?.let { invoice ->
+        DeleteInvoiceDialog(
+            invoice = invoice,
+            onConfirm = {
+                pendingDelete = null
+                scope.launch {
+                    db.deleteInvoice(invoice.id)
+                    reload++
+                }
+            },
+            onDismiss = { pendingDelete = null }
         )
     }
 }

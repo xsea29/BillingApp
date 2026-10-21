@@ -11,7 +11,9 @@ const val GST_RATE = 0.05
 data class Bill(
     val customerName: String = "",
     val customerPhone: String = "",
-    val items: List<BillItem> = emptyList()
+    val items: List<BillItem> = emptyList(),
+    /** When the bill is dated. Starts as "now"; can be moved to an earlier day. */
+    val createdAt: Long = System.currentTimeMillis()
 ) {
 
     val subtotal: Double
@@ -47,4 +49,55 @@ data class Bill(
 
     fun withCustomer(name: String, phone: String): Bill =
         copy(customerName = name, customerPhone = phone)
+
+    fun withDate(createdAt: Long): Bill =
+        copy(createdAt = createdAt)
+}
+
+/**
+ * Turns a saved invoice back into a bill that can be edited.
+ *
+ * Each line keeps the price it was sold at, even if the catalogue price has changed since.
+ * A line whose product has since been deleted or renamed is kept too (with a made-up
+ * negative id so it can't clash with a real product); it just isn't in the items list any more.
+ */
+fun billFromInvoice(
+    invoice: Invoice,
+    items: List<InvoiceItem>,
+    catalogue: List<Product>
+): Bill {
+    var nextMissingId = -1
+
+    val lines = items
+        .map { item ->
+            val product = catalogue.firstOrNull { it.name == item.productName }
+                ?.copy(price = item.price)
+                ?: Product(
+                    id = nextMissingId--,
+                    name = item.productName,
+                    price = item.price,
+                    category = ""
+                )
+
+            BillItem(product, item.quantity)
+        }
+        // Two lines for the same product become one, quantities added.
+        .fold(emptyList<BillItem>()) { merged, line ->
+            val index = merged.indexOfFirst { it.product.id == line.product.id }
+
+            if (index < 0) {
+                merged + line
+            } else {
+                merged.toMutableList().also {
+                    it[index] = it[index].copy(quantity = it[index].quantity + line.quantity)
+                }
+            }
+        }
+
+    return Bill(
+        customerName = invoice.customerName,
+        customerPhone = invoice.phoneNumber,
+        items = lines,
+        createdAt = invoice.createdAt
+    )
 }

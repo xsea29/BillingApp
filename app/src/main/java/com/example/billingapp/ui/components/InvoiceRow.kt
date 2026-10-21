@@ -54,12 +54,13 @@ fun InitialAvatar(
     }
 }
 
-/** One invoice in a list: avatar, customer + number on the left, total + time on the right. */
+/** One invoice in a list: avatar, customer + number on the left, total + time on the right, and a delete icon if [onDeleteClick] is given. */
 @Composable
 fun InvoiceRow(
     invoice: Invoice,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDeleteClick: (() -> Unit)? = null
 ) {
     val name = invoice.customerName.ifBlank { "Walk-in customer" }
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
@@ -106,6 +107,14 @@ fun InvoiceRow(
                 text = formatTime(invoice.createdAt),
                 style = MaterialTheme.typography.bodySmall,
                 color = muted
+            )
+        }
+
+        if (onDeleteClick != null) {
+            DeleteButton(
+                onClick = onDeleteClick,
+                contentDescription = "Delete invoice ${invoice.id}",
+                modifier = Modifier.padding(start = 4.dp)
             )
         }
     }

@@ -27,7 +27,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.billingapp.AppDatabase
 import com.example.billingapp.Invoice
+import com.example.billingapp.deleteInvoice
 import com.example.billingapp.ui.components.AppDrawerSheet
+import com.example.billingapp.ui.components.DeleteInvoiceDialog
 import com.example.billingapp.ui.components.DrawerEntry
 import com.example.billingapp.ui.components.EmptyState
 import com.example.billingapp.ui.components.RoundActionButton
@@ -56,11 +58,13 @@ fun HomeScreen(
 
     // null = still loading, so we don't flash "No bills" before the query returns.
     var invoices by remember { mutableStateOf<List<Invoice>?>(null) }
+    var pendingDelete by remember { mutableStateOf<Invoice?>(null) }
+    var reload by remember { mutableStateOf(0) }
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(period) {
+    LaunchedEffect(period, reload) {
         val (start, end) = period.range()
         invoices = db.invoiceDao()
             .getInvoicesBetween(start, end)
@@ -138,7 +142,11 @@ fun HomeScreen(
 
                     item { SalesSummary(loaded) }
 
-                    invoiceGroups(loaded, onInvoiceClick)
+                    invoiceGroups(
+                        invoices = loaded,
+                        onInvoiceClick = onInvoiceClick,
+                        onDeleteClick = { pendingDelete = it }
+                    )
                 }
             }
 
@@ -150,6 +158,20 @@ fun HomeScreen(
                     .padding(24.dp)
             )
         }
+    }
+
+    pendingDelete?.let { invoice ->
+        DeleteInvoiceDialog(
+            invoice = invoice,
+            onConfirm = {
+                pendingDelete = null
+                scope.launch {
+                    db.deleteInvoice(invoice.id)
+                    reload++
+                }
+            },
+            onDismiss = { pendingDelete = null }
+        )
     }
 }
 

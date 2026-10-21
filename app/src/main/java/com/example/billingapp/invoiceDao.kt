@@ -3,12 +3,19 @@ package com.example.billingapp
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 
 @Dao
 interface InvoiceDao {
 
     @Insert
     suspend fun insert(invoice: Invoice): Long
+
+    @Update
+    suspend fun update(invoice: Invoice)
+
+    @Query("DELETE FROM invoices WHERE id = :invoiceId")
+    suspend fun deleteById(invoiceId: Int)
 
     @Query("SELECT * FROM invoices ORDER BY id DESC")
     suspend fun getAllInvoices(): List<Invoice>

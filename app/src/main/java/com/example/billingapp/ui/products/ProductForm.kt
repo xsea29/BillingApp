@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -28,6 +27,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.billingapp.Product
+import com.example.billingapp.ui.components.ConfirmDialog
 import com.example.billingapp.ui.components.PillChip
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TopRow
@@ -155,30 +155,16 @@ fun ProductForm(
     }
 
     if (confirmDelete && existing != null) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete product?") },
-            text = {
-                Text(
-                    "“${existing.name}” will be removed from your product list. " +
-                            "Past invoices keep their record of it."
-                )
+        ConfirmDialog(
+            title = "Delete product?",
+            message = "“${existing.name}” will be removed from your product list. " +
+                    "Past invoices keep their record of it.",
+            confirmLabel = "Delete",
+            onConfirm = {
+                confirmDelete = false
+                onDelete()
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmDelete = false
-                        onDelete()
-                    }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { confirmDelete = false }
         )
     }
 }

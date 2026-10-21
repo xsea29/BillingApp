@@ -46,12 +46,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** A saved invoice, read-only: customer, items and totals, with a button to make the PDF. */
+/** A saved invoice: customer, items and totals, an Edit button, and a button to make the PDF. */
 @Composable
 fun InvoiceDetailsScreen(
     db: AppDatabase,
     invoiceId: Int,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onEditClick: () -> Unit
 ) {
     BackHandler(onBack = onBackClick)
 
@@ -77,7 +78,13 @@ fun InvoiceDetailsScreen(
                 .padding(start = 24.dp, end = 24.dp, top = 8.dp)
         ) {
 
-            TopRow(startText = "Back", onStartClick = onBackClick)
+            TopRow(startText = "Back", onStartClick = onBackClick) {
+                TextAction(
+                    text = "Edit",
+                    onClick = onEditClick,
+                    contentAlignment = Alignment.CenterEnd
+                )
+            }
 
             Text(
                 text = "Invoice #$invoiceId",

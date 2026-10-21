@@ -3,6 +3,7 @@ package com.example.billingapp.ui.newbill
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,8 +33,10 @@ import com.example.billingapp.Bill
 import com.example.billingapp.BillItem
 import com.example.billingapp.Customer
 import com.example.billingapp.GST_RATE
+import com.example.billingapp.billFromInvoice
 import com.example.billingapp.Product
 import com.example.billingapp.saveBill
+import com.example.billingapp.updateBill
 import com.example.billingapp.ui.components.ArrowRow
 import com.example.billingapp.ui.components.LabeledRow
 import com.example.billingapp.ui.components.QuantityStepper
@@ -41,23 +44,33 @@ import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TopRow
 import com.example.billingapp.ui.components.TotalBox
+import com.example.billingapp.util.dayLabel
 import com.example.billingapp.util.formatRupees
+import com.example.billingapp.util.moveToPickedDay
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 private enum class Step { Bill, Customer, Items }
 
+/**
+ * Makes a new bill, or (when [editInvoiceId] is given) changes a saved one: same page, with
+ * the customer, items and date already filled in, and an "Update" button.
+ */
 @Composable
 fun NewBillScreen(
     db: AppDatabase,
+    editInvoiceId: Int? = null,
     onBackClick: () -> Unit,
     onSaved: (invoiceId: Int) -> Unit
 ) {
+    val editing = editInvoiceId != null
+
     var step by remember { mutableStateOf(Step.Bill) }
     var bill by remember { mutableStateOf(Bill()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    // When editing, wait for the saved bill to load so the page doesn't flash empty.
+    var ready by remember { mutableStateOf(!editing) }
 
     var products by remember { mutableStateOf<List<Product>>(emptyList()) }
     var customers by remember { mutableStateOf<List<Customer>>(emptyList()) }
@@ -66,7 +79,17 @@ fun NewBillScreen(
     LaunchedEffect(Unit) {
         products = db.productDao().getAllProducts()
         customers = db.customerDao().getAllCustomers()
-        nextInvoiceNumber = (db.invoiceDao().getLastInvoiceId() ?: 0) + 1
+
+        if (editInvoiceId == null) {
+            nextInvoiceNumber = (db.invoiceDao().getLastInvoiceId() ?: 0) + 1
+        } else {
+            bill = billFromInvoice(
+                invoice = db.invoiceDao().getInvoiceById(editInvoiceId),
+                items = db.invoiceItemDao().getItemsByInvoiceId(editInvoiceId),
+                catalogue = products
+            )
+            ready = true
+        }
     }
 
     // Back steps out of the customer / items page first, and only then leaves the screen.
@@ -74,61 +97,82 @@ fun NewBillScreen(
         if (step == Step.Bill) onBackClick() else step = Step.Bill
     }
 
-    when (step) {
+    if (!ready) {
+        Box(modifier = Modifier.fillMaxSize())
+    } else {
+        when (step) {
 
-        Step.Bill -> BillPage(
-            db = db,
-            bill = bill,
-            invoiceNumber = nextInvoiceNumber,
-            onQuantityChange = { product, quantity ->
-                bill = bill.withQuantity(product, quantity)
-            },
-            onCustomerClick = { step = Step.Customer },
-            onAddItemClick = { step = Step.Items },
-            onBackClick = onBackClick,
-            onSaved = onSaved
-        )
+            Step.Bill -> BillPage(
+                bill = bill,
+                editing = editing,
+                invoiceNumber = editInvoiceId ?: nextInvoiceNumber,
+                onQuantityChange = { product, quantity ->
+                    bill = bill.withQuantity(product, quantity)
+                },
+                onDateClick = { showDatePicker = true },
+                onCustomerClick = { step = Step.Customer },
+                onAddItemClick = { step = Step.Items },
+                onBackClick = onBackClick,
+                save = { toSave ->
+                    if (editInvoiceId == null) {
+                        db.saveBill(toSave)
+                    } else {
+                        db.updateBill(editInvoiceId, toSave)
+                        editInvoiceId
+                    }
+                },
+                onSaved = onSaved
+            )
 
-        Step.Customer -> CustomerPage(
-            customers = customers,
-            initialName = bill.customerName,
-            initialPhone = bill.customerPhone,
-            onBackClick = { step = Step.Bill },
-            onDone = { name, phone ->
-                bill = bill.withCustomer(name, phone)
-                step = Step.Bill
-            }
-        )
+            Step.Customer -> CustomerPage(
+                customers = customers,
+                initialName = bill.customerName,
+                initialPhone = bill.customerPhone,
+                onBackClick = { step = Step.Bill },
+                onDone = { name, phone ->
+                    bill = bill.withCustomer(name, phone)
+                    step = Step.Bill
+                }
+            )
 
-        Step.Items -> ItemsPage(
-            products = products,
-            bill = bill,
-            onQuantityChange = { product, quantity ->
-                bill = bill.withQuantity(product, quantity)
-            },
-            onBackClick = { step = Step.Bill }
-        )
+            Step.Items -> ItemsPage(
+                products = products,
+                bill = bill,
+                onQuantityChange = { product, quantity ->
+                    bill = bill.withQuantity(product, quantity)
+                },
+                onBackClick = { step = Step.Bill }
+            )
+        }
+
+        if (showDatePicker) {
+            InvoiceDatePickerDialog(
+                current = bill.createdAt,
+                onDismiss = { showDatePicker = false },
+                onPick = { picked ->
+                    bill = bill.withDate(moveToPickedDay(bill.createdAt, picked))
+                }
+            )
+        }
     }
 }
 
 @Composable
 private fun BillPage(
-    db: AppDatabase,
     bill: Bill,
+    editing: Boolean,
     invoiceNumber: Int?,
     onQuantityChange: (Product, Int) -> Unit,
+    onDateClick: () -> Unit,
     onCustomerClick: () -> Unit,
     onAddItemClick: () -> Unit,
     onBackClick: () -> Unit,
+    save: suspend (Bill) -> Int,
     onSaved: (Int) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var saving by remember { mutableStateOf(false) }
-
-    val today = remember {
-        SimpleDateFormat("d MMMM yyyy", Locale.getDefault()).format(Date())
-    }
 
     Column(modifier = Modifier.fillMaxSize()) {
 
@@ -142,7 +186,7 @@ private fun BillPage(
             TopRow(startText = "Back", onStartClick = onBackClick)
 
             Text(
-                text = "New Bill",
+                text = if (editing) "Update Bill" else "New Bill",
                 style = MaterialTheme.typography.headlineLarge,
                 modifier = Modifier.padding(top = 24.dp)
             )
@@ -158,12 +202,16 @@ private fun BillPage(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Draft",
+                    text = if (editing) "Editing" else "Draft",
                     style = MaterialTheme.typography.titleMedium
                 )
             }
 
-            LabeledRow(label = "Invoice date", value = today)
+            LabeledRow(
+                label = "Invoice date",
+                value = dayLabel(bill.createdAt),
+                onClick = onDateClick
+            )
             HorizontalDivider()
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -218,19 +266,19 @@ private fun BillPage(
             )
 
             RoundActionButton(
-                text = "Save",
+                text = if (editing) "Update" else "Save",
                 enabled = bill.items.isNotEmpty() && !saving,
                 onClick = {
                     saving = true
                     scope.launch {
                         try {
-                            onSaved(db.saveBill(bill))
+                            onSaved(save(bill))
                         } catch (e: Exception) {
                             if (e is CancellationException) throw e
                             saving = false
                             Toast.makeText(
                                 context,
-                                "Could not save the bill",
+                                if (editing) "Could not update the bill" else "Could not save the bill",
                                 Toast.LENGTH_LONG
                             ).show()
                         }

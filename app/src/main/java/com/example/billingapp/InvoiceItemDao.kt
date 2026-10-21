@@ -10,6 +10,9 @@ interface InvoiceItemDao {
     @Insert
     suspend fun insert(invoiceItem: InvoiceItem): Long
 
+    @Query("DELETE FROM invoice_items WHERE invoiceId = :invoiceId")
+    suspend fun deleteByInvoiceId(invoiceId: Int)
+
     @Query(
         "SELECT * FROM invoice_items WHERE invoiceId = :invoiceId"
     )

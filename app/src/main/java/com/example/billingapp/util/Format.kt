@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import kotlin.math.round
 
 /**
@@ -72,4 +73,30 @@ fun dayLabel(timeMillis: Long): String {
         yesterday -> "Yesterday"
         else -> SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(timeMillis))
     }
+}
+
+/**
+ * The date picker works in "midnight UTC of the chosen calendar day". This turns a normal
+ * timestamp into that, for the same calendar day as seen on the phone.
+ */
+fun pickerMillisOf(localMillis: Long): Long {
+    val local = Calendar.getInstance().apply { timeInMillis = localMillis }
+
+    return Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+        clear()
+        set(local.get(Calendar.YEAR), local.get(Calendar.MONTH), local.get(Calendar.DAY_OF_MONTH))
+    }.timeInMillis
+}
+
+/**
+ * Moves [localMillis] to the calendar day the date picker returned, keeping the time of day.
+ * (A bill dated yesterday still carries the time it was entered.)
+ */
+fun moveToPickedDay(localMillis: Long, pickerMillis: Long): Long {
+    val picked = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = pickerMillis }
+
+    return Calendar.getInstance().apply {
+        timeInMillis = localMillis
+        set(picked.get(Calendar.YEAR), picked.get(Calendar.MONTH), picked.get(Calendar.DAY_OF_MONTH))
+    }.timeInMillis
 }

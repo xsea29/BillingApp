@@ -75,6 +75,7 @@ fun CustomerPage(
             onValueChange = { name = it },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Name") },
+            placeholder = { Text("Sirsendu Roy") },
             singleLine = true,
             shape = MaterialTheme.shapes.medium,
             keyboardOptions = KeyboardOptions(
@@ -93,6 +94,7 @@ fun CustomerPage(
             },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Phone") },
+            placeholder = { Text("9876543210") },
             singleLine = true,
             shape = MaterialTheme.shapes.medium,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)

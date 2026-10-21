@@ -90,19 +90,24 @@ fun ArrowCircle(
     }
 }
 
-/** Label on the left, value on the right ("Subtotal      ₹390.00"). */
+/**
+ * Label on the left, value on the right ("Subtotal      ₹390.00"). Pass [onClick] to make the
+ * whole row tappable; a small › then shows after the value.
+ */
 @Composable
 fun LabeledRow(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
-    bold: Boolean = false
+    bold: Boolean = false,
+    onClick: (() -> Unit)? = null
 ) {
     val weight = if (bold) FontWeight.SemiBold else FontWeight.Normal
 
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -112,11 +117,23 @@ fun LabeledRow(
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = weight
         )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = weight
-        )
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = weight
+            )
+
+            if (onClick != null) {
+                Text(
+                    text = "›",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+        }
     }
 }
 

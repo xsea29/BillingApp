@@ -31,14 +31,21 @@ fun BillingApp(db: AppDatabase) {
     var openCustomerId by remember {
         mutableStateOf<Int?>(null)
     }
+    // Set when a saved invoice is being edited on the New Bill screen; null for a brand-new bill.
+    var editInvoiceId by remember {
+        mutableStateOf<Int?>(null)
+    }
+
+    fun startNewBill() {
+        editInvoiceId = null
+        currentScreen = "bill"
+    }
 
     when (currentScreen) {
 
         "home" -> HomeScreen(
             db = db,
-            onNewBillClick = {
-                currentScreen = "bill"
-            },
+            onNewBillClick = ::startNewBill,
             onInvoiceClick = {
                 selectedInvoiceId = it
                 invoiceDetailsBackTo = "home"
@@ -85,12 +92,17 @@ fun BillingApp(db: AppDatabase) {
 
         "bill" -> NewBillScreen(
             db = db,
+            editInvoiceId = editInvoiceId,
             onBackClick = {
-                currentScreen = "home"
+                // Backing out of an edit returns to that invoice, not to Home.
+                currentScreen = if (editInvoiceId != null) "invoiceDetails" else "home"
+                editInvoiceId = null
             },
             onSaved = { invoiceId ->
+                // A new bill goes back to Home when closed; an updated one keeps its old way back.
+                if (editInvoiceId == null) invoiceDetailsBackTo = "home"
                 selectedInvoiceId = invoiceId
-                invoiceDetailsBackTo = "home"
+                editInvoiceId = null
                 currentScreen = "invoiceDetails"
             }
         )
@@ -105,9 +117,7 @@ fun BillingApp(db: AppDatabase) {
                 invoiceDetailsBackTo = "invoiceHistory"
                 currentScreen = "invoiceDetails"
             },
-            onNewBillClick = {
-                currentScreen = "bill"
-            }
+            onNewBillClick = ::startNewBill
         )
 
         "invoiceDetails" -> InvoiceDetailsScreen(
@@ -115,6 +125,10 @@ fun BillingApp(db: AppDatabase) {
             invoiceId = selectedInvoiceId,
             onBackClick = {
                 currentScreen = invoiceDetailsBackTo
+            },
+            onEditClick = {
+                editInvoiceId = selectedInvoiceId
+                currentScreen = "bill"
             }
         )
 
@@ -123,9 +137,7 @@ fun BillingApp(db: AppDatabase) {
             onBackClick = {
                 currentScreen = "home"
             },
-            onNewBillClick = {
-                currentScreen = "bill"
-            }
+            onNewBillClick = ::startNewBill
         )
     }
 }

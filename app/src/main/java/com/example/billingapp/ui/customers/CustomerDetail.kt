@@ -19,6 +19,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +35,8 @@ import com.example.billingapp.Customer
 import com.example.billingapp.Invoice
 import com.example.billingapp.ui.components.ArrowCircle
 import com.example.billingapp.ui.components.BorderedCard
+import com.example.billingapp.ui.components.DeleteButton
+import com.example.billingapp.ui.components.DeleteInvoiceDialog
 import com.example.billingapp.ui.components.InitialAvatar
 import com.example.billingapp.ui.components.LabeledRow
 import com.example.billingapp.ui.components.MiniStat
@@ -53,9 +59,11 @@ fun CustomerDetail(
     bills: List<Invoice>,
     onBackClick: () -> Unit,
     onEditClick: () -> Unit,
-    onInvoiceClick: (Int) -> Unit
+    onInvoiceClick: (Int) -> Unit,
+    onDeleteBill: (Invoice) -> Unit
 ) {
     val context = LocalContext.current
+    var pendingDelete by remember { mutableStateOf<Invoice?>(null) }
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
@@ -179,7 +187,8 @@ fun CustomerDetail(
                 bills.forEach { bill ->
                     BillCard(
                         bill = bill,
-                        onClick = { onInvoiceClick(bill.id) }
+                        onClick = { onInvoiceClick(bill.id) },
+                        onDeleteClick = { pendingDelete = bill }
                     )
                 }
             }
@@ -187,13 +196,25 @@ fun CustomerDetail(
 
         Spacer(modifier = Modifier.height(8.dp))
     }
+
+    pendingDelete?.let { invoice ->
+        DeleteInvoiceDialog(
+            invoice = invoice,
+            onConfirm = {
+                pendingDelete = null
+                onDeleteBill(invoice)
+            },
+            onDismiss = { pendingDelete = null }
+        )
+    }
 }
 
 /** One of the customer's bills: when, which, how much, and an arrow to open it. */
 @Composable
 private fun BillCard(
     bill: Invoice,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -226,10 +247,20 @@ private fun BillCard(
             )
         }
 
-        ArrowCircle(
-            glyph = "↗",
-            container = colors.primary,
-            content = colors.onPrimary
-        )
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ArrowCircle(
+                glyph = "↗",
+                container = colors.primary,
+                content = colors.onPrimary
+            )
+
+            DeleteButton(
+                onClick = onDeleteClick,
+                contentDescription = "Delete invoice ${bill.id}"
+            )
+        }
     }
 }

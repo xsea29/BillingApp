@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.example.billingapp.AppDatabase
 import com.example.billingapp.Customer
 import com.example.billingapp.Invoice
+import com.example.billingapp.deleteInvoice
 import com.example.billingapp.ui.components.ArrowCircle
 import com.example.billingapp.ui.components.EmptyState
 import com.example.billingapp.ui.components.InitialAvatar
@@ -138,7 +139,13 @@ fun CustomersScreen(
             bills = billsOf(opened, invoices),
             onBackClick = { onOpenCustomerChange(null) },
             onEditClick = { editor = Editor(opened) },
-            onInvoiceClick = onInvoiceClick
+            onInvoiceClick = onInvoiceClick,
+            onDeleteBill = { bill ->
+                scope.launch {
+                    db.deleteInvoice(bill.id)
+                    reload()
+                }
+            }
         )
 
         else -> {

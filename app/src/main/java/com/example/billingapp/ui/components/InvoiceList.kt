@@ -15,7 +15,8 @@ import com.example.billingapp.util.startOfDay
  */
 fun LazyListScope.invoiceGroups(
     invoices: List<Invoice>,
-    onInvoiceClick: (Int) -> Unit
+    onInvoiceClick: (Int) -> Unit,
+    onDeleteClick: ((Invoice) -> Unit)? = null
 ) {
     invoices
         .groupBy { startOfDay(it.createdAt) }
@@ -31,7 +32,8 @@ fun LazyListScope.invoiceGroups(
             items(dayInvoices, key = { it.id }) { invoice ->
                 InvoiceRow(
                     invoice = invoice,
-                    onClick = { onInvoiceClick(invoice.id) }
+                    onClick = { onInvoiceClick(invoice.id) },
+                    onDeleteClick = onDeleteClick?.let { delete -> { delete(invoice) } }
                 )
             }
         }
