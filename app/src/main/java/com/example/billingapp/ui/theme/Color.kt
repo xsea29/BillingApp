@@ -11,19 +11,12 @@ val Outline = Color(0xFFB9BCC4)
 val Muted = Color(0xFF6F737B)
 val Danger = Color(0xFFD03B3B)
 
-// Charts. Categories use the first five slots of a palette checked for colour-blind
-// safety (adjacent pairs) on a white surface; "Other" is neutral grey.
-val ChartColors = listOf(
-    Color(0xFF2A78D6),
-    Color(0xFFEB6834),
-    Color(0xFF1BAF7A),
-    Color(0xFFEDA100),
-    Color(0xFFE87BA4)
-)
-val ChartOther = Color(0xFFB9BCC4)
+// Chart bars: soft purple, a touch deeper for the selected one and for the share bars.
+val BarSoft = Color(0xFFDDD5F8)
+val BarPurple = Color(0xFF8E78EE)
 
-// Bars that are not selected.
-val BarMuted = Color(0xFFDADCE1)
+// The crown and star on the top category / best seller tiles.
+val AwardGold = Color(0xFFE0A000)
 
 // "Up is good" text, dark enough to read on white.
 val DeltaUp = Color(0xFF006300)

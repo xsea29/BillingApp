@@ -16,7 +16,7 @@ import kotlin.math.roundToInt
 
 /** One bar of the chart: an hour (Today) or a day (week / month). */
 data class Bucket(
-    /** Short axis text: "Mon", "14", "3p". */
+    /** Short axis text: "Mon", "14", "3 PM". */
     val label: String,
     /** Full text for the selection line: "Wed 21 Oct", "3 PM – 4 PM". */
     val caption: String,
@@ -142,22 +142,6 @@ fun percentChange(current: Double, previous: Double): Int? {
     return ((current - previous) / previous * 100).roundToInt()
 }
 
-/**
- * A donut with 20 slivers is unreadable: keep the biggest [maxShown] categories and
- * fold the rest into one "Other" slice.
- */
-fun List<CategorySales>.foldTail(maxShown: Int = 5): List<CategorySales> {
-    if (size <= maxShown) return this
-
-    val rest = drop(maxShown)
-
-    return take(maxShown) + CategorySales(
-        name = "Other",
-        quantity = rest.sumOf { it.quantity },
-        amount = roundToPaise(rest.sumOf { it.amount })
-    )
-}
-
 /** Smallest "round" number (1, 2, 5 x 10^n) that is at least [value]; the top of the chart. */
 fun niceCeiling(value: Double): Double {
     if (value <= 0.0) return 1.0
@@ -196,12 +180,6 @@ private fun longHour(hour: Int): String {
     return "$twelveHour ${if (hour % 24 < 12) "AM" else "PM"}"
 }
 
-/** "3p", "12a". */
-private fun shortHour(hour: Int): String {
-    val twelveHour = if (hour % 12 == 0) 12 else hour % 12
-    return "$twelveHour${if (hour % 24 < 12) "a" else "p"}"
-}
-
 /**
  * One bar per hour. Shows 8 am to 9 pm at least, stretching earlier or later when
  * there were sales outside shop hours (or the clock is) so nothing is cut off.
@@ -217,7 +195,7 @@ private fun hourBuckets(invoices: List<Invoice>, now: Long): List<Bucket> {
 
     return (first..last).map { hour ->
         Bucket(
-            label = shortHour(hour),
+            label = longHour(hour),
             caption = "${longHour(hour)} – ${longHour(hour + 1)}",
             amount = roundToPaise(byHour[hour] ?: 0.0),
             showLabel = (hour - first) % 3 == 0,

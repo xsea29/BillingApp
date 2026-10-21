@@ -1,6 +1,7 @@
 package com.example.billingapp.ui.sales
 
 import android.widget.Toast
+import androidx.annotation.DrawableRes
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -42,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.billingapp.AppDatabase
@@ -58,9 +60,11 @@ import com.example.billingapp.ui.components.SegmentedToggle
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TextAction
 import com.example.billingapp.ui.components.TopRow
-import com.example.billingapp.ui.theme.ChartColors
-import com.example.billingapp.ui.theme.ChartOther
+import com.example.billingapp.ui.theme.AwardGold
+import com.example.billingapp.ui.theme.BarPurple
+import com.example.billingapp.ui.theme.BarSoft
 import com.example.billingapp.ui.theme.DeltaUp
+import com.example.billingapp.ui.theme.MoneyGreen
 import com.example.billingapp.util.SalesPeriod
 import com.example.billingapp.util.formatRupees
 import com.example.billingapp.util.openPdf
@@ -320,8 +324,10 @@ private fun SalesContent(data: SalesData) {
     ) {
         report.topCategory?.let { category ->
             StatTile(
+                icon = R.drawable.ic_crown,
                 label = "Top category",
                 value = formatRupees(category.amount),
+                valueColor = MoneyGreen,
                 name = category.name,
                 detail = "${category.quantity} ${if (category.quantity == 1) "item" else "items"}",
                 modifier = Modifier
@@ -332,10 +338,12 @@ private fun SalesContent(data: SalesData) {
 
         report.bestSeller?.let { product ->
             StatTile(
+                icon = R.drawable.ic_star,
                 label = "Best seller",
                 value = "${product.quantity} sold",
                 name = product.name,
                 detail = formatRupees(product.amount),
+                detailColor = MoneyGreen,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -349,7 +357,12 @@ private fun SalesContent(data: SalesData) {
     val biggest = report.products.maxOfOrNull { it.amount } ?: 0.0
 
     shownProducts.forEach { product ->
-        ProductRow(product = product, biggest = biggest)
+        AmountRow(
+            name = product.name,
+            detail = "${product.quantity} sold",
+            amount = product.amount,
+            fraction = if (biggest > 0) (product.amount / biggest).toFloat() else 0f
+        )
     }
 
     if (report.products.size > PRODUCTS_SHOWN) {
@@ -376,6 +389,7 @@ private fun OverviewCard(report: SalesReport, period: SalesPeriod) {
         Text(
             text = formatRupees(report.total),
             style = MaterialTheme.typography.displaySmall,
+            color = MoneyGreen,
             modifier = Modifier.padding(top = 4.dp)
         )
 
@@ -396,7 +410,8 @@ private fun OverviewCard(report: SalesReport, period: SalesPeriod) {
             SmallCaps(text = bucket?.caption.orEmpty())
             Text(
                 text = formatRupees(bucket?.amount ?: 0.0),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                color = MoneyGreen
             )
         }
 
@@ -437,91 +452,72 @@ private fun DeltaLine(current: Double, previous: Double, previousLabel: String) 
     )
 }
 
+/** Every category with its share of sales: name, "60% · 24 items", amount, and a share bar. */
 @Composable
 private fun CategoriesCard(report: SalesReport) {
-    val slices = report.categories.foldTail(ChartColors.size)
-    val total = slices.sumOf { it.amount }
-
-    fun colorOf(index: Int): Color =
-        if (slices[index].name == "Other") ChartOther else ChartColors.getOrElse(index) { ChartOther }
+    val total = report.categories.sumOf { it.amount }
 
     BorderedCard {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            CategoryDonut(
-                slices = slices,
-                sliceColors = slices.indices.map { colorOf(it) },
-                centerValue = report.itemCount.toString(),
-                centerLabel = "Items sold"
+        report.categories.forEach { category ->
+            val share = if (total > 0) category.amount / total else 0.0
+            val percent = (share * 100).roundToInt()
+
+            AmountRow(
+                name = category.name,
+                detail = "${if (percent == 0) "<1" else percent.toString()}% · " +
+                        "${category.quantity} ${if (category.quantity == 1) "item" else "items"}",
+                amount = category.amount,
+                fraction = share.toFloat(),
+                verticalPadding = 8.dp
             )
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // The legend doubles as the table: every name, share and amount in plain text.
-        slices.forEachIndexed { index, slice ->
-            val share = if (total > 0) (slice.amount / total * 100).roundToInt() else 0
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(CircleShape)
-                        .background(colorOf(index))
-                )
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 12.dp)
-                ) {
-                    Text(
-                        text = slice.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "${if (share == 0) "<1" else share.toString()}% · " +
-                                "${slice.quantity} ${if (slice.quantity == 1) "item" else "items"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Text(
-                    text = formatRupees(slice.amount),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
         }
     }
 }
 
-/** Soft grey tile: label, one big figure, then what it belongs to. */
+/**
+ * Soft grey tile: a crown or star and a label, one big figure, what it belongs to, and a small
+ * white pill with the detail. [valueColor] and [detailColor] let money be green.
+ */
 @Composable
 private fun StatTile(
+    @DrawableRes icon: Int,
     label: String,
     value: String,
     name: String,
     detail: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    valueColor: Color = Color.Unspecified,
+    detailColor: Color = Color.Unspecified
 ) {
+    val colors = MaterialTheme.colorScheme
+
     Column(
         modifier = modifier
             .clip(MaterialTheme.shapes.large)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+            .background(colors.surfaceVariant)
+            .padding(16.dp)
     ) {
-        SmallCaps(text = label)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(colors.surface),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    tint = AwardGold,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+
+            SmallCaps(text = label)
+        }
 
         Text(
             text = value,
@@ -529,30 +525,48 @@ private fun StatTile(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold
             ),
-            modifier = Modifier.padding(top = 8.dp)
+            color = valueColor,
+            maxLines = 1,
+            modifier = Modifier.padding(top = 14.dp)
         )
 
+        // Two lines reserved, so the pills of two tiles side by side line up.
         Text(
             text = name,
             style = MaterialTheme.typography.titleMedium,
+            minLines = 2,
             maxLines = 2,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 2.dp)
         )
 
-        Text(
-            text = detail,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Box(
+            modifier = Modifier
+                .padding(top = 12.dp)
+                .clip(CircleShape)
+                .background(colors.surface)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.labelLarge,
+                color = detailColor,
+                maxLines = 1
+            )
+        }
     }
 }
 
-/** Product name, how many sold, amount, and a thin bar showing its size against the best one. */
+/** A name, a line of detail under it, an amount on the right, and a thin purple bar for [fraction] of the width. */
 @Composable
-private fun ProductRow(product: ProductSales, biggest: Double) {
-    val fraction = if (biggest > 0) (product.amount / biggest).toFloat().coerceIn(0.02f, 1f) else 0f
-
-    Column(modifier = Modifier.padding(vertical = 10.dp)) {
+private fun AmountRow(
+    name: String,
+    detail: String,
+    amount: Double,
+    fraction: Float,
+    verticalPadding: Dp = 10.dp
+) {
+    Column(modifier = Modifier.padding(vertical = verticalPadding)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -560,20 +574,20 @@ private fun ProductRow(product: ProductSales, biggest: Double) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = product.name,
+                    text = name,
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "${product.quantity} sold",
+                    text = detail,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Text(
-                text = formatRupees(product.amount),
+                text = formatRupees(amount),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(start = 12.dp)
             )
@@ -585,13 +599,13 @@ private fun ProductRow(product: ProductSales, biggest: Double) {
                 .fillMaxWidth()
                 .height(4.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.outlineVariant)
+                .background(BarSoft)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(fraction)
-                    .background(MaterialTheme.colorScheme.primary)
+                    .fillMaxWidth(fraction.coerceIn(0.02f, 1f))
+                    .background(BarPurple)
             )
         }
     }
