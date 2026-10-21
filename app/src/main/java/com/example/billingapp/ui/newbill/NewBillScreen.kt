@@ -118,9 +118,9 @@ fun NewBillScreen(
     }
 
     /**
-     * The one place a quantity goes up. If the product is counted and there isn't that much in
-     * stock, the bill stays as it was and the "out of stock" message shows instead. Going down is
-     * always allowed.
+     * The one place a quantity goes up. If there isn't that much in stock (a product with no stock
+     * entered has none), the bill stays as it was and the "out of stock" message shows instead.
+     * Going down is always allowed.
      */
     fun changeQuantity(product: Product, quantity: Int) {
         if (quantity > bill.quantityOf(product)) {

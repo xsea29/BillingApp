@@ -39,9 +39,10 @@ fun Bill.piecesByName(): Map<String, Int> =
         .mapValues { (_, lines) -> lines.sumOf { it.quantity } }
 
 /**
- * How many of [name] can still be sold on a bill dated [saleDate], or null when the product isn't
- * counted: no stock was ever entered for it, or the bill is dated before the day its first stock
- * came in (such a bill doesn't take from stock, see [stockRows]).
+ * How many of [name] can still be sold on a bill dated [saleDate]. A product nobody has entered
+ * stock for has none: 0. The one exception is null, "no limit", for a bill dated before the day
+ * the product's first stock came in: such a bill doesn't take from stock at all (see [stockRows]),
+ * so an old forgotten bill can still be entered.
  *
  * [ignoreInvoice] leaves one invoice out of what was sold: the invoice being changed, whose own
  * pieces are free to be chosen again.
@@ -54,7 +55,7 @@ fun availableStock(
     ignoreInvoice: Int? = null
 ): Int? {
     val own = entries.filter { it.productName == name }
-    if (own.isEmpty()) return null
+    if (own.isEmpty()) return 0
 
     val countedFrom = startOfDay(own.minOf { it.addedAt })
     if (saleDate < countedFrom) return null
@@ -68,7 +69,7 @@ fun availableStock(
 
 /**
  * The products on a bill ([asked]: pieces per product name) that the stock can't cover, A to Z.
- * Products that aren't counted are never a shortage.
+ * That includes a product no stock was ever entered for: nothing in stock means nothing to bill.
  *
  * [alreadyOnInvoice] is what the saved invoice being changed already had: a line that doesn't ask
  * for more than that is let through, so changing only the customer of an old invoice is never
