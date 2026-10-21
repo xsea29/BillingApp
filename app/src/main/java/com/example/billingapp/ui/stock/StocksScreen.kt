@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -45,6 +46,7 @@ import com.example.billingapp.ui.components.ConfirmDialog
 import com.example.billingapp.ui.components.DeleteButton
 import com.example.billingapp.ui.components.EmptyState
 import com.example.billingapp.ui.components.FilterIconButton
+import com.example.billingapp.ui.components.PaginationBar
 import com.example.billingapp.ui.components.PillChip
 import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SmallCaps
@@ -53,7 +55,9 @@ import com.example.billingapp.ui.newbill.InvoiceDatePickerDialog
 import com.example.billingapp.ui.products.ProductForm
 import com.example.billingapp.ui.products.categoriesOf
 import com.example.billingapp.util.formatDateTime
+import com.example.billingapp.util.Page
 import com.example.billingapp.util.moveToPickedDay
+import com.example.billingapp.util.paginate
 import com.example.billingapp.util.startOfDay
 import kotlinx.coroutines.launch
 
@@ -84,6 +88,7 @@ fun StocksScreen(
     var showDatePicker by remember { mutableStateOf(false) }
 
     var page by remember { mutableStateOf(StocksPage.List) }
+    var pageNumber by remember { mutableStateOf(1) }
     var newProductName by remember { mutableStateOf("") }
 
     // What is being added on the Add page, by product name. Lives here so it survives a trip to
@@ -127,6 +132,10 @@ fun StocksScreen(
     val (start, end) = pickedDay?.let(::dayRange) ?: (period ?: StockPeriod.Today).range(now)
 
     val rows = remember(entries, sold, start, end) { stockRows(allEntries, sold, start, end) }
+
+    // Ten products at a time. A page number that no longer exists (after removing stock, say)
+    // is moved to the nearest real one.
+    val rowsPage = paginate(rows, pageNumber)
 
     // What each product has left right now, for the Add page.
     val leftByName = remember(entries, sold, now) {
@@ -188,6 +197,7 @@ fun StocksScreen(
                     // Show what was just added.
                     period = StockPeriod.Today
                     pickedDay = null
+                    pageNumber = 1
                     page = StocksPage.List
                 }
             }
@@ -196,7 +206,7 @@ fun StocksScreen(
         StocksPage.List -> StockList(
             loaded = entries != null,
             hasAnyStock = allEntries.isNotEmpty(),
-            rows = rows,
+            rows = rowsPage,
             title = stockRangeTitle(period, pickedDay, now),
             period = period,
             datePicked = pickedDay != null,
@@ -204,7 +214,9 @@ fun StocksScreen(
             onPeriodChange = {
                 period = it
                 pickedDay = null
+                pageNumber = 1
             },
+            onPageChange = { pageNumber = it },
             onFilterClick = { showDatePicker = true },
             onRowClick = { detailName = it.name },
             onAddClick = { page = StocksPage.Add },
@@ -219,6 +231,7 @@ fun StocksScreen(
             onPick = {
                 pickedDay = startOfDay(moveToPickedDay(now, it))
                 period = null
+                pageNumber = 1
             }
         )
     }
@@ -256,20 +269,25 @@ fun StocksScreen(
 private fun StockList(
     loaded: Boolean,
     hasAnyStock: Boolean,
-    rows: List<StockRow>,
+    rows: Page<StockRow>,
     title: String,
     period: StockPeriod?,
     datePicked: Boolean,
     askToAdd: Boolean,
     onPeriodChange: (StockPeriod) -> Unit,
+    onPageChange: (Int) -> Unit,
     onFilterClick: () -> Unit,
     onRowClick: (StockRow) -> Unit,
     onAddClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
     Box(modifier = Modifier.fillMaxSize()) {
 
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             // Bottom padding keeps the last row clear of the floating button.
             contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 120.dp)
@@ -348,11 +366,11 @@ private fun StockList(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             SmallCaps(text = title)
-                            SmallCaps(text = "${rows.size} ${if (rows.size == 1) "product" else "products"}")
+                            SmallCaps(text = "${rows.total} ${if (rows.total == 1) "product" else "products"}")
                         }
                     }
 
-                    if (rows.isEmpty()) {
+                    if (rows.total == 0) {
                         item {
                             EmptyState(
                                 title = "Nothing in stock",
@@ -361,8 +379,18 @@ private fun StockList(
                         }
                     }
 
-                    items(rows, key = { it.name }) { row ->
+                    items(rows.items, key = { it.name }) { row ->
                         StockRowItem(row = row, onClick = { onRowClick(row) })
+                    }
+
+                    item {
+                        PaginationBar(
+                            page = rows,
+                            onPageChange = {
+                                onPageChange(it)
+                                scope.launch { listState.scrollToItem(0) }
+                            }
+                        )
                     }
                 }
             }
