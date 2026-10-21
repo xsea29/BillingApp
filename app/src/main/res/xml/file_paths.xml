@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Which private files other apps may be handed a link to: only the invoice PDFs made for viewing and sharing. -->
+<paths>
+    <cache-path
+        name="invoices"
+        path="invoices/" />
+</paths>

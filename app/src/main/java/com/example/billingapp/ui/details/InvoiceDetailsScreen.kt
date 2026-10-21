@@ -1,6 +1,5 @@
 package com.example.billingapp.ui.details
 
-import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,12 +43,17 @@ import com.example.billingapp.ui.theme.MoneyGreen
 import com.example.billingapp.util.formatDateTime
 import com.example.billingapp.util.formatRupees
 import com.example.billingapp.util.openPdf
+import com.example.billingapp.util.sharePdf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
-/** A saved invoice: customer, items and totals, an Edit button, and a button to make the PDF. */
+/**
+ * A saved invoice: customer, items and totals. Share (top) sends the PDF to any app, Edit changes
+ * the bill, Download (bottom left) keeps a copy in Downloads, and the PDF button opens it.
+ */
 @Composable
 fun InvoiceDetailsScreen(
     db: AppDatabase,
@@ -60,11 +65,34 @@ fun InvoiceDetailsScreen(
 
     var invoice by remember { mutableStateOf<Invoice?>(null) }
     var items by remember { mutableStateOf<List<InvoiceItem>>(emptyList()) }
-    var pdfUri by remember { mutableStateOf<Uri?>(null) }
-    var generating by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    /**
+     * Builds the invoice PDF off the main thread and hands it to [then]. Taps are ignored while
+     * one is already being made, so a double tap can't start two.
+     */
+    fun withPdf(failure: String, then: suspend (Invoice, File) -> Unit) {
+        val current = invoice ?: return
+        if (busy) return
+
+        busy = true
+        scope.launch {
+            try {
+                val file = withContext(Dispatchers.IO) {
+                    PdfGenerator.createInvoiceFile(context, current, items)
+                }
+                then(current, file)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Toast.makeText(context, failure, Toast.LENGTH_LONG).show()
+            } finally {
+                busy = false
+            }
+        }
+    }
 
     LaunchedEffect(invoiceId) {
         invoice = db.invoiceDao().getInvoiceById(invoiceId)
@@ -81,11 +109,29 @@ fun InvoiceDetailsScreen(
         ) {
 
             TopRow(startText = "Back", onStartClick = onBackClick) {
-                TextAction(
-                    text = "Edit",
-                    onClick = onEditClick,
-                    contentAlignment = Alignment.CenterEnd
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextAction(
+                        text = "Share",
+                        onClick = {
+                            withPdf("Could not make the PDF to share") { current, file ->
+                                sharePdf(
+                                    context = context,
+                                    uri = PdfGenerator.uriFor(context, file),
+                                    subject = "Invoice #${current.id} from Monginis",
+                                    message = "Invoice #${current.id} from Monginis. " +
+                                            "Total ${formatRupees(current.total)}. Thank you!"
+                                )
+                            }
+                        },
+                        contentAlignment = Alignment.CenterEnd
+                    )
+
+                    TextAction(
+                        text = "Edit",
+                        onClick = onEditClick,
+                        contentAlignment = Alignment.CenterEnd
+                    )
+                }
             }
 
             Text(
@@ -139,51 +185,40 @@ fun InvoiceDetailsScreen(
                 .padding(24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            pdfUri?.let { uri ->
-                TextAction(
-                    text = "Open PDF →",
-                    onClick = { openPdf(context, uri) }
-                )
+            // Saves a copy in the phone's Downloads folder.
+            FilledTonalButton(
+                onClick = {
+                    withPdf("Could not make the PDF") { _, file ->
+                        val saved = withContext(Dispatchers.IO) {
+                            PdfGenerator.saveToDownloads(context, file)
+                        }
+
+                        Toast.makeText(
+                            context,
+                            if (saved) {
+                                "Saved to Downloads/Monginis Bills"
+                            } else {
+                                "Couldn't save to Downloads on this phone. Use Share to send or save the PDF."
+                            },
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                },
+                enabled = invoice != null && !busy,
+                modifier = Modifier.height(52.dp)
+            ) {
+                Text("↓  Download")
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // Opens the PDF to read or print.
             RoundActionButton(
                 text = "PDF",
-                enabled = invoice != null && !generating,
+                enabled = invoice != null && !busy,
                 onClick = {
-                    val current = invoice ?: return@RoundActionButton
-
-                    generating = true
-                    scope.launch {
-                        try {
-                            val uri = withContext(Dispatchers.IO) {
-                                PdfGenerator.generateInvoicePdf(
-                                    context = context,
-                                    invoice = current,
-                                    items = items
-                                )
-                            }
-
-                            pdfUri = uri
-
-                            Toast.makeText(
-                                context,
-                                "PDF saved to Downloads/Monginis Bills",
-                                Toast.LENGTH_SHORT
-                            ).show()
-
-                        } catch (e: Exception) {
-                            if (e is CancellationException) throw e
-
-                            Toast.makeText(
-                                context,
-                                "Could not create PDF",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        } finally {
-                            generating = false
-                        }
+                    withPdf("Could not make the PDF") { _, file ->
+                        openPdf(context, PdfGenerator.uriFor(context, file))
                     }
                 }
             )
