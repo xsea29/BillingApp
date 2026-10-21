@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -32,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.billingapp.AppDatabase
@@ -490,21 +492,23 @@ private fun StockDetailDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
-                            Text(
-                                text = "+${entry.quantity}",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                            Text(
-                                text = formatDateTime(entry.addedAt),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Text(
+                            text = formatDateTime(entry.addedAt),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
 
                         DeleteButton(
                             onClick = { onRemove(entry) },
                             contentDescription = "Remove +${entry.quantity}"
+                        )
+
+                        // Last on the line, with room for "+100", so the numbers line up down the list.
+                        Text(
+                            text = "+${entry.quantity}",
+                            style = MaterialTheme.typography.titleMedium,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.widthIn(min = 44.dp)
                         )
                     }
                 }
