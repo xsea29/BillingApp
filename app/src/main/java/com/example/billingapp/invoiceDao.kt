@@ -13,6 +13,10 @@ interface InvoiceDao {
     @Query("SELECT * FROM invoices ORDER BY id DESC")
     suspend fun getAllInvoices(): List<Invoice>
 
+    // Null when there are no invoices yet.
+    @Query("SELECT MAX(id) FROM invoices")
+    suspend fun getLastInvoiceId(): Int?
+
     @Query("SELECT * FROM invoices WHERE id = :invoiceId")
     suspend fun getInvoiceById(
         invoiceId: Int
