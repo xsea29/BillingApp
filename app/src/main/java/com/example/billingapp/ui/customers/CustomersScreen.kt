@@ -43,12 +43,15 @@ import com.example.billingapp.deleteInvoice
 import com.example.billingapp.ui.components.ArrowCircle
 import com.example.billingapp.ui.components.EmptyState
 import com.example.billingapp.ui.components.InitialAvatar
+import com.example.billingapp.ui.components.PaginationBar
 import com.example.billingapp.ui.components.PillChip
 import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SearchField
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TopRow
 import com.example.billingapp.util.formatRupeesCompact
+import com.example.billingapp.util.Page
+import com.example.billingapp.util.paginate
 import kotlinx.coroutines.launch
 
 /** What the editor page is showing: [customer] = null means "add a new one". */
@@ -74,6 +77,7 @@ fun CustomersScreen(
     var invoices by remember { mutableStateOf<List<Invoice>>(emptyList()) }
     var query by remember { mutableStateOf("") }
     var sort by remember { mutableStateOf(CustomerSort.Name) }
+    var pageNumber by remember { mutableStateOf(1) }
     var editor by remember { mutableStateOf<Editor?>(null) }
 
     // Kept here, above the page switch, so the list's scroll position survives opening a customer.
@@ -153,15 +157,27 @@ fun CustomersScreen(
                 sortCustomers(filterCustomers(all, query), stats, sort)
             }
 
+            val page = paginate(shown, pageNumber)
+
             CustomerList(
                 loaded = customers != null,
                 total = all.size,
-                shown = shown,
+                page = page,
                 stats = stats,
                 query = query,
-                onQueryChange = { query = it },
+                onQueryChange = {
+                    query = it
+                    pageNumber = 1
+                },
                 sort = sort,
-                onSortChange = { sort = it },
+                onSortChange = {
+                    sort = it
+                    pageNumber = 1
+                },
+                onPageChange = {
+                    pageNumber = it
+                    scope.launch { gridState.scrollToItem(0) }
+                },
                 gridState = gridState,
                 onBackClick = onBackClick,
                 onAddClick = { editor = Editor(null) },
@@ -175,12 +191,13 @@ fun CustomersScreen(
 private fun CustomerList(
     loaded: Boolean,
     total: Int,
-    shown: List<Customer>,
+    page: Page<Customer>,
     stats: Map<String, CustomerStats>,
     query: String,
     onQueryChange: (String) -> Unit,
     sort: CustomerSort,
     onSortChange: (CustomerSort) -> Unit,
+    onPageChange: (Int) -> Unit,
     gridState: LazyGridState,
     onBackClick: () -> Unit,
     onAddClick: () -> Unit,
@@ -237,7 +254,7 @@ private fun CustomerList(
                 }
             }
 
-            if (loaded && shown.isEmpty()) {
+            if (loaded && page.total == 0) {
 
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     if (total == 0) {
@@ -257,16 +274,23 @@ private fun CustomerList(
 
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SmallCaps(
-                        text = "${shown.size} ${if (shown.size == 1) "customer" else "customers"}",
+                        text = "${page.total} ${if (page.total == 1) "customer" else "customers"}",
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
 
-                items(shown, key = { it.id }) { customer ->
+                items(page.items, key = { it.id }) { customer ->
                     CustomerCard(
                         customer = customer,
                         stats = stats[customer.phone],
                         onClick = { onCustomerClick(customer) }
+                    )
+                }
+
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    PaginationBar(
+                        page = page,
+                        onPageChange = onPageChange
                     )
                 }
             }

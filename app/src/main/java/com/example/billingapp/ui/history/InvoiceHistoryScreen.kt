@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,12 +25,14 @@ import com.example.billingapp.AppDatabase
 import com.example.billingapp.Invoice
 import com.example.billingapp.deleteInvoice
 import com.example.billingapp.ui.components.EmptyState
+import com.example.billingapp.ui.components.PaginationBar
 import com.example.billingapp.ui.components.DeleteInvoiceDialog
 import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SearchField
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TopRow
 import com.example.billingapp.ui.components.invoiceGroups
+import com.example.billingapp.util.paginate
 import kotlinx.coroutines.launch
 
 /** Every invoice ever made, newest first, with search by customer, phone or invoice number. */
@@ -47,6 +50,8 @@ fun InvoiceHistoryScreen(
     var query by remember { mutableStateOf("") }
     var pendingDelete by remember { mutableStateOf<Invoice?>(null) }
     var reload by remember { mutableStateOf(0) }
+    var pageNumber by remember { mutableStateOf(1) }
+    val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(reload) {
@@ -62,6 +67,7 @@ fun InvoiceHistoryScreen(
     Box(modifier = Modifier.fillMaxSize()) {
 
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             // Bottom padding keeps the last row clear of the floating button.
             contentPadding = PaddingValues(
@@ -88,7 +94,10 @@ fun InvoiceHistoryScreen(
 
                     SearchField(
                         value = query,
-                        onValueChange = { query = it },
+                        onValueChange = {
+                            query = it
+                            pageNumber = 1
+                        },
                         placeholder = "Name, phone or invoice #"
                     )
                 }
@@ -119,11 +128,23 @@ fun InvoiceHistoryScreen(
                         )
                     }
 
+                    val page = paginate(shown, pageNumber)
+
                     invoiceGroups(
-                        invoices = shown,
+                        invoices = page.items,
                         onInvoiceClick = onInvoiceClick,
                         onDeleteClick = { pendingDelete = it }
                     )
+
+                    item {
+                        PaginationBar(
+                            page = page,
+                            onPageChange = {
+                                pageNumber = it
+                                scope.launch { listState.scrollToItem(0) }
+                            }
+                        )
+                    }
                 }
             }
         }

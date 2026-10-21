@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
@@ -33,12 +34,14 @@ import com.example.billingapp.ui.components.DeleteInvoiceDialog
 import com.example.billingapp.ui.components.DrawerEntry
 import com.example.billingapp.ui.components.EmptyState
 import com.example.billingapp.ui.components.MenuButton
+import com.example.billingapp.ui.components.PaginationBar
 import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SegmentedToggle
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.invoiceGroups
 import com.example.billingapp.util.SalesPeriod
 import com.example.billingapp.util.formatRupees
+import com.example.billingapp.util.paginate
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -60,6 +63,8 @@ fun HomeScreen(
     var invoices by remember { mutableStateOf<List<Invoice>?>(null) }
     var pendingDelete by remember { mutableStateOf<Invoice?>(null) }
     var reload by remember { mutableStateOf(0) }
+    var pageNumber by remember { mutableStateOf(1) }
+    val listState = rememberLazyListState()
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -92,6 +97,7 @@ fun HomeScreen(
         Box(modifier = Modifier.fillMaxSize()) {
 
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 // Bottom padding keeps the last row clear of the floating button.
                 contentPadding = PaddingValues(
@@ -122,7 +128,10 @@ fun HomeScreen(
                             options = SalesPeriod.values().toList(),
                             selected = period,
                             label = { it.label },
-                            onSelect = { period = it }
+                            onSelect = {
+                                period = it
+                                pageNumber = 1
+                            }
                         )
                     }
                 }
@@ -142,11 +151,24 @@ fun HomeScreen(
 
                     item { SalesSummary(loaded) }
 
+                    // The summary above counts every bill of the period; the list shows 10 at a time.
+                    val page = paginate(loaded, pageNumber)
+
                     invoiceGroups(
-                        invoices = loaded,
+                        invoices = page.items,
                         onInvoiceClick = onInvoiceClick,
                         onDeleteClick = { pendingDelete = it }
                     )
+
+                    item {
+                        PaginationBar(
+                            page = page,
+                            onPageChange = {
+                                pageNumber = it
+                                scope.launch { listState.scrollToItem(0) }
+                            }
+                        )
+                    }
                 }
             }
 
