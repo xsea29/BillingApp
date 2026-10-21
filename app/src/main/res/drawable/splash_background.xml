@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the window shows while the app starts: plain white with the word "Monginis". -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@android:color/white" />
+    <item
+        android:drawable="@drawable/splash_wordmark"
+        android:gravity="center" />
+</layer-list>

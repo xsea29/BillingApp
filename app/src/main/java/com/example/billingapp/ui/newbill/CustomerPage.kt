@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.billingapp.Customer
+import com.example.billingapp.isValidPhone
 import com.example.billingapp.ui.components.InitialAvatar
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TopRow
@@ -95,6 +96,15 @@ fun CustomerPage(
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Phone") },
             placeholder = { Text("9876543210") },
+            supportingText = {
+                when {
+                    phone.isEmpty() -> Text("Optional")
+                    !isValidPhone(phone) -> Text("Enter all 10 digits to add them to Customers")
+                    customers.any { it.phone == phone } -> Text("Saved customer")
+                    name.isBlank() -> Text("Add a name to save this customer")
+                    else -> Text("Will be added to Customers")
+                }
+            },
             singleLine = true,
             shape = MaterialTheme.shapes.medium,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)

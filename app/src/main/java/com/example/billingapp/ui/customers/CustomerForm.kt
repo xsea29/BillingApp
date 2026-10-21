@@ -24,6 +24,9 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.billingapp.Customer
+import com.example.billingapp.isValidEmail
+import com.example.billingapp.isValidPhone
+import com.example.billingapp.otherCustomerWithPhone
 import com.example.billingapp.ui.components.ConfirmDialog
 import com.example.billingapp.ui.components.TopRow
 

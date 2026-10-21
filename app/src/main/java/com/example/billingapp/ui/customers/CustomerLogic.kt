@@ -76,14 +76,3 @@ fun sortCustomers(
         )
     }
 }
-
-fun isValidPhone(text: String): Boolean =
-    text.length == 10 && text.all { it.isDigit() }
-
-/** Email is optional: empty is fine, otherwise it must look like name@domain.tld. */
-fun isValidEmail(text: String): Boolean =
-    text.isBlank() || Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$").matches(text.trim())
-
-/** Another saved customer using [phone], if any. [ignoreId] is the one being edited. */
-fun otherCustomerWithPhone(phone: String, customers: List<Customer>, ignoreId: Int?): Customer? =
-    customers.firstOrNull { it.phone == phone && it.id != ignoreId }

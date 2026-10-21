@@ -19,6 +19,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // The theme's window background is the start-up screen (the word "Monginis");
+        // from here on it should just be white, never showing behind the app.
+        window.setBackgroundDrawableResource(android.R.color.white)
+
         // No "wipe and start again" fallback: a schema change without a migration
         // should fail loudly, not silently delete the shop's invoices.
         db = Room.databaseBuilder(
@@ -36,6 +40,14 @@ class MainActivity : ComponentActivity() {
                 db.productDao().insertAll(
                     ProductData.products
                 )
+            }
+
+            // Bills made before customers were saved automatically: add their customers, once.
+            val prefs = getSharedPreferences("monginis", MODE_PRIVATE)
+
+            if (!prefs.getBoolean("customers_from_bills_done", false)) {
+                db.addCustomersFromInvoices()
+                prefs.edit().putBoolean("customers_from_bills_done", true).apply()
             }
         }
 

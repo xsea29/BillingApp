@@ -4,7 +4,8 @@ import androidx.room.withTransaction
 
 /**
  * Saves a new invoice and all its lines in one transaction, so a half-saved bill
- * can never end up in the database. Returns the new invoice number.
+ * can never end up in the database. The bill's customer is added to the customer list too,
+ * if new. Returns the new invoice number.
  *
  * The number is chosen here (see [nextInvoiceNumber]) rather than left to the database's own
  * counter, which never goes backwards: after deleting invoice #1 it would hand out #2 while the
@@ -27,6 +28,7 @@ suspend fun AppDatabase.saveBill(bill: Bill): Int = withTransaction {
     )
 
     insertLines(invoiceId, bill)
+    rememberCustomer(bill.customerName, bill.customerPhone)
 
     invoiceId
 }
@@ -54,6 +56,7 @@ suspend fun AppDatabase.updateBill(invoiceId: Int, bill: Bill) = withTransaction
 
     invoiceItemDao().deleteByInvoiceId(invoiceId)
     insertLines(invoiceId, bill)
+    rememberCustomer(bill.customerName, bill.customerPhone)
 }
 
 /** Removes an invoice together with its lines. All or nothing. */

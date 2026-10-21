@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+      Android 12 and newer draw their own start-up screen and, unless told otherwise, fill it with
+      the launcher icon (the cake). This swaps in the word "Monginis" on white. The system shows
+      only the middle 192dp circle of the 288dp image, which the wordmark is sized to fit.
+    -->
+    <style name="Theme.BillingApp" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowSplashScreenBackground">@android:color/white</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_wordmark</item>
+    </style>
+</resources>
