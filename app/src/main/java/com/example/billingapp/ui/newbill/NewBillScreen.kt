@@ -32,8 +32,8 @@ import com.example.billingapp.AppDatabase
 import com.example.billingapp.Bill
 import com.example.billingapp.BillItem
 import com.example.billingapp.Customer
-import com.example.billingapp.GST_RATE
 import com.example.billingapp.billFromInvoice
+import com.example.billingapp.gstLabel
 import com.example.billingapp.nextInvoiceNumber
 import com.example.billingapp.Product
 import com.example.billingapp.saveBill
@@ -244,7 +244,7 @@ private fun BillPage(
             LabeledRow(label = "Subtotal", value = formatRupees(bill.subtotal))
             HorizontalDivider()
             LabeledRow(
-                label = "GST ${(GST_RATE * 100).toInt()}%",
+                label = gstLabel(),
                 value = formatRupees(bill.gst)
             )
 

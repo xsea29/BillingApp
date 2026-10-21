@@ -255,7 +255,7 @@ object PdfGenerator {
         )
 
         drawText(
-            "GST 18% : ₹${"%.2f".format(
+            "${gstLabel()} : ₹${"%.2f".format(
                 Locale.getDefault(),
                 invoice.gst
             )}"

@@ -1,8 +1,12 @@
 package com.example.billingapp
 
 import com.example.billingapp.util.roundToPaise
+import kotlin.math.roundToInt
 
 const val GST_RATE = 0.05
+
+/** "GST 5%": the label for the GST line on a bill, on a saved invoice and on its PDF. */
+fun gstLabel(): String = "GST ${(GST_RATE * 100).roundToInt()}%"
 
 /**
  * The number the next new invoice gets: one more than the highest number in use, or 1 if there

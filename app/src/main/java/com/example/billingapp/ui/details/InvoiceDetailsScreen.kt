@@ -32,6 +32,7 @@ import com.example.billingapp.AppDatabase
 import com.example.billingapp.Invoice
 import com.example.billingapp.InvoiceItem
 import com.example.billingapp.PdfGenerator
+import com.example.billingapp.gstLabel
 import com.example.billingapp.ui.components.LabeledRow
 import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SmallCaps
@@ -120,7 +121,7 @@ fun InvoiceDetailsScreen(
 
                 LabeledRow(label = "Subtotal", value = formatRupees(current.subtotal))
                 HorizontalDivider()
-                LabeledRow(label = "GST", value = formatRupees(current.gst))
+                LabeledRow(label = gstLabel(), value = formatRupees(current.gst))
 
                 TotalBox(
                     total = current.total,
