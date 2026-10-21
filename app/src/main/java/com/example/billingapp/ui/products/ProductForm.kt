@@ -33,11 +33,13 @@ import com.example.billingapp.ui.components.PillChip
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.StockStepper
 import com.example.billingapp.ui.components.TopRow
+import com.example.billingapp.util.stockShown
+import com.example.billingapp.util.stockToSave
 
 /**
  * Add a product ([existing] = null) or change one. Category is free text, with the
  * categories already in use offered as chips so spellings stay consistent. Quantity (how many are
- * in stock) is optional: a product without one is simply not counted.
+ * in stock) is a "- 12 +" stepper; a product left at 0 is simply not counted.
  */
 @Composable
 fun ProductForm(
@@ -51,8 +53,7 @@ fun ProductForm(
     var price by remember { mutableStateOf(existing?.let { priceToInput(it.price) }.orEmpty()) }
     var category by remember { mutableStateOf(existing?.category.orEmpty()) }
 
-    // null = this product isn't counted. Below zero (billed more than was entered) shows as 0.
-    var stock by remember { mutableStateOf(existing?.stock?.coerceAtLeast(0)) }
+    var quantity by remember { mutableStateOf(stockShown(existing?.stock)) }
     var confirmDelete by remember { mutableStateOf(false) }
 
     val parsedPrice = parsePrice(price)
@@ -131,47 +132,31 @@ fun ProductForm(
                 }
             }
 
-            SmallCaps(
-                text = "Quantity",
-                modifier = Modifier.padding(top = 28.dp, bottom = 8.dp)
-            )
-
-            val counted = stock
-
-            if (counted == null) {
-                PillChip(
-                    text = "+ Add quantity",
-                    selected = false,
-                    onClick = { stock = 0 }
+            // Like a cart line: the name on the left, the "- 12 +" at the far right.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 28.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Quantity",
+                    style = MaterialTheme.typography.titleMedium
                 )
 
-                Text(
-                    text = "Optional. Leave it off for items you don't count.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    StockStepper(
-                        quantity = counted,
-                        onChange = { stock = it }
-                    )
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    TextButton(onClick = { stock = null }) {
-                        Text("Don't count")
-                    }
-                }
-
-                Text(
-                    text = "How many you have now. It goes down as you bill.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp)
+                StockStepper(
+                    quantity = quantity,
+                    onChange = { quantity = it }
                 )
             }
+
+            Text(
+                text = "How many you have now. Billing takes from it. Leave 0 for items you don't count.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp)
+            )
 
             if (existing != null) {
                 TextButton(
@@ -189,7 +174,7 @@ fun ProductForm(
         Button(
             onClick = {
                 if (parsedPrice != null) {
-                    onSave(name.trim(), parsedPrice, matchCategory(category, categories), stock)
+                    onSave(name.trim(), parsedPrice, matchCategory(category, categories), stockToSave(existing?.stock, quantity))
                 }
             },
             enabled = canSave,

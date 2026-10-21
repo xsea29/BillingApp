@@ -232,7 +232,7 @@ fun ProductsScreen(
 
 /**
  * Outlined card: a grey block with the product's first letter (standing in for a photo),
- * then category, name, "Qty. 5" at the right (only when the product is counted) and a light-green
+ * then category, name, "Qty. 5" at the right (only when there is some in stock) and a light-green
  * price strip. Name takes two lines and the Qty line always has its room, so cards in a row line up.
  */
 @Composable
@@ -293,13 +293,12 @@ private fun ProductCard(
                 .padding(top = 6.dp),
             contentAlignment = Alignment.CenterEnd
         ) {
-            product.stock?.let { stock ->
-                val count = stock.coerceAtLeast(0)
-
+            // Nothing at 0, and nothing for a product that isn't counted.
+            product.stock?.takeIf { it > 0 }?.let { stock ->
                 Text(
-                    text = "Qty. $count",
+                    text = "Qty. $stock",
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (count == 0) colors.error else colors.onSurfaceVariant
+                    color = colors.onSurfaceVariant
                 )
             }
         }
