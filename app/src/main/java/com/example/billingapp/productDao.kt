@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 
 
 @Dao
@@ -17,6 +18,9 @@ interface ProductDao {
 
     @Query("SELECT * FROM products")
     suspend fun getAllProducts(): List<Product>
+
+    @Update
+    suspend fun update(product: Product)
 
     @Delete
     suspend fun delete(product: Product)

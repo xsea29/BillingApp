@@ -76,6 +76,7 @@ fun CustomerPage(
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Name") },
             singleLine = true,
+            shape = MaterialTheme.shapes.medium,
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Words
             )
@@ -93,6 +94,7 @@ fun CustomerPage(
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Phone") },
             singleLine = true,
+            shape = MaterialTheme.shapes.medium,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
         )
 
