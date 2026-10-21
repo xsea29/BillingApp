@@ -54,7 +54,7 @@ fun BillingAppTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = AppColorScheme,
         typography = Typography,
-        shapes = Shapes,
+        shapes = AppShapes,
         content = content
     )
 }

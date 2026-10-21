@@ -1,9 +1,11 @@
 package com.example.billingapp.ui.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,18 +34,36 @@ fun SmallCaps(
 fun TextAction(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    contentAlignment: Alignment = Alignment.CenterStart
 ) {
     Box(
         modifier = modifier
-            .defaultMinSize(minHeight = 48.dp)
-            .clickable(onClick = onClick)
-            .padding(end = 16.dp),
-        contentAlignment = Alignment.CenterStart
+            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+            .clickable(onClick = onClick),
+        contentAlignment = contentAlignment
     ) {
         SmallCaps(
             text = text,
             color = MaterialTheme.colorScheme.onSurface
         )
+    }
+}
+
+/** Top of a screen: a tappable word on the left ("BACK") and anything you like on the right. */
+@Composable
+fun TopRow(
+    startText: String,
+    onStartClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    end: @Composable () -> Unit = {}
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        TextAction(text = startText, onClick = onStartClick)
+        end()
     }
 }

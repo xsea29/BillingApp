@@ -15,22 +15,23 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 
-/** The black circle that floats bottom-right ("+ NEW", "SEND"). */
+/** The black circle that floats bottom-right ("+ NEW", "SAVE"). Turns grey when [enabled] is false. */
 @Composable
 fun RoundActionButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     val colors = MaterialTheme.colorScheme
 
     Box(
         modifier = modifier
             .size(72.dp)
-            .shadow(6.dp, CircleShape)
-            .background(colors.primary, CircleShape)
+            .shadow(if (enabled) 6.dp else 0.dp, CircleShape)
+            .background(if (enabled) colors.primary else colors.outline, CircleShape)
             .clip(CircleShape)
-            .clickable(role = Role.Button, onClick = onClick),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(

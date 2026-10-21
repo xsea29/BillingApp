@@ -74,7 +74,7 @@ fun HomeScreen(
         ) {
 
             item {
-                TopRow(
+                HomeTopRow(
                     onInvoiceHistoryClick = onInvoiceHistoryClick,
                     onSalesSummaryClick = onSalesSummaryClick,
                     onCustomersClick = onCustomersClick,
@@ -143,7 +143,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun TopRow(
+private fun HomeTopRow(
     onInvoiceHistoryClick: () -> Unit,
     onSalesSummaryClick: () -> Unit,
     onCustomersClick: () -> Unit,
