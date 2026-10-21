@@ -6,13 +6,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.example.billingapp.R
 
 /** Small spaced-out caps text, e.g. a section heading like "YESTERDAY". */
 @Composable
@@ -50,7 +55,7 @@ fun TextAction(
     }
 }
 
-/** Top of a screen: a tappable word on the left ("BACK") and anything you like on the right. */
+/** Top of a screen: a left arrow and a word ("← BACK") on the left, anything you like on the right. */
 @Composable
 fun TopRow(
     startText: String,
@@ -58,12 +63,30 @@ fun TopRow(
     modifier: Modifier = Modifier,
     end: @Composable () -> Unit = {}
 ) {
+    val ink = MaterialTheme.colorScheme.onSurface
+
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TextAction(text = startText, onClick = onStartClick)
+        Row(
+            modifier = Modifier
+                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                .clickable(role = Role.Button, onClick = onStartClick),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_arrow_back),
+                contentDescription = null,
+                tint = ink,
+                modifier = Modifier.size(20.dp)
+            )
+
+            SmallCaps(text = startText, color = ink)
+        }
+
         end()
     }
 }

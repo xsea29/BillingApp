@@ -4,16 +4,21 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,12 +31,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.billingapp.AppDatabase
 import com.example.billingapp.Invoice
 import com.example.billingapp.InvoiceItem
 import com.example.billingapp.PdfGenerator
+import com.example.billingapp.R
 import com.example.billingapp.gstLabel
 import com.example.billingapp.ui.components.LabeledRow
 import com.example.billingapp.ui.components.RoundActionButton
@@ -109,9 +116,11 @@ fun InvoiceDetailsScreen(
         ) {
 
             TopRow(startText = "Back", onStartClick = onBackClick) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextAction(
-                        text = "Share",
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
                         onClick = {
                             withPdf("Could not make the PDF to share") { current, file ->
                                 sharePdf(
@@ -123,8 +132,14 @@ fun InvoiceDetailsScreen(
                                 )
                             }
                         },
-                        contentAlignment = Alignment.CenterEnd
-                    )
+                        enabled = invoice != null && !busy
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_share),
+                            contentDescription = "Share invoice",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
 
                     TextAction(
                         text = "Edit",
@@ -205,9 +220,18 @@ fun InvoiceDetailsScreen(
                     }
                 },
                 enabled = invoice != null && !busy,
-                modifier = Modifier.height(52.dp)
+                modifier = Modifier.height(52.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 22.dp)
             ) {
-                Text("↓  Download")
+                Icon(
+                    painter = painterResource(R.drawable.ic_download),
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp)
+                )
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Text("Download")
             }
 
             Spacer(modifier = Modifier.weight(1f))
