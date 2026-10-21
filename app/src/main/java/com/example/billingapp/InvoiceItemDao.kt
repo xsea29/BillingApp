@@ -31,7 +31,8 @@ interface InvoiceItemDao {
     @Query(
         "SELECT invoice_items.productName AS productName, " +
                 "invoice_items.quantity AS quantity, " +
-                "invoices.createdAt AS soldAt " +
+                "invoices.createdAt AS soldAt, " +
+                "invoice_items.invoiceId AS invoiceId " +
                 "FROM invoice_items " +
                 "INNER JOIN invoices ON invoices.id = invoice_items.invoiceId " +
                 "WHERE invoices.createdAt >= :since"

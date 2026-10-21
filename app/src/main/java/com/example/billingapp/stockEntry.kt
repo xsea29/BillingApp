@@ -22,9 +22,13 @@ data class StockEntry(
     val addedAt: Long = System.currentTimeMillis()
 )
 
-/** One product line of one invoice, with the time of that invoice. What the stock sums up as sold. */
+/**
+ * One product line of one invoice, with that invoice's number and time. What the stock sums up
+ * as sold; the number lets an invoice that is being changed be left out of its own total.
+ */
 data class SoldLine(
     val productName: String,
     val quantity: Int,
-    val soldAt: Long
+    val soldAt: Long,
+    val invoiceId: Int
 )

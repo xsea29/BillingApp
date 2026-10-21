@@ -45,13 +45,20 @@ import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TopRow
 import com.example.billingapp.ui.components.TotalBox
+import com.example.billingapp.ui.stock.AddStockFlow
+import com.example.billingapp.ui.stock.Shortage
+import com.example.billingapp.ui.stock.StockData
+import com.example.billingapp.ui.stock.StockShortageDialog
+import com.example.billingapp.ui.stock.loadStockData
+import com.example.billingapp.ui.stock.piecesByName
+import com.example.billingapp.ui.stock.stockShortages
 import com.example.billingapp.util.dayLabel
 import com.example.billingapp.util.formatRupees
 import com.example.billingapp.util.moveToPickedDay
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-private enum class Step { Bill, Customer, Items }
+private enum class Step { Bill, Customer, Items, AddStock }
 
 /**
  * Makes a new bill, or (when [editInvoiceId] is given) changes a saved one: same page, with
@@ -77,24 +84,80 @@ fun NewBillScreen(
     var customers by remember { mutableStateOf<List<Customer>>(emptyList()) }
     var newInvoiceNumber by remember { mutableStateOf<Int?>(null) }
 
+    val scope = rememberCoroutineScope()
+
+    // What is in stock, for refusing items that are out of it (see stockShortages).
+    var stockData by remember { mutableStateOf(StockData(emptyList(), emptyList())) }
+
+    // Pieces per product the saved invoice being changed already has, so lines it keeps as they
+    // were are never refused.
+    var alreadyOnInvoice by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+
+    // Set while the "out of stock" message is showing, and where to go back to from Add Stock.
+    var shortages by remember { mutableStateOf<List<Shortage>?>(null) }
+    var stockReturnStep by remember { mutableStateOf(Step.Bill) }
+
     LaunchedEffect(Unit) {
         products = db.productDao().getAllProducts()
         customers = db.customerDao().getAllCustomers()
+        stockData = db.loadStockData()
 
         if (editInvoiceId == null) {
             newInvoiceNumber = nextInvoiceNumber(db.invoiceDao().getLastInvoiceId())
         } else {
+            val savedLines = db.invoiceItemDao().getItemsByInvoiceId(editInvoiceId)
+
+            alreadyOnInvoice = savedLines.piecesByName()
             bill = billFromInvoice(
                 invoice = db.invoiceDao().getInvoiceById(editInvoiceId),
-                items = db.invoiceItemDao().getItemsByInvoiceId(editInvoiceId),
+                items = savedLines,
                 catalogue = products
             )
             ready = true
         }
     }
 
-    // Back steps out of the customer / items page first, and only then leaves the screen.
-    BackHandler {
+    /**
+     * The one place a quantity goes up. If the product is counted and there isn't that much in
+     * stock, the bill stays as it was and the "out of stock" message shows instead. Going down is
+     * always allowed.
+     */
+    fun changeQuantity(product: Product, quantity: Int) {
+        if (quantity > bill.quantityOf(product)) {
+            val short = stockShortages(
+                asked = mapOf(product.name to quantity),
+                entries = stockData.entries,
+                sold = stockData.sold,
+                saleDate = bill.createdAt,
+                editingInvoice = editInvoiceId,
+                alreadyOnInvoice = alreadyOnInvoice
+            )
+
+            if (short.isNotEmpty()) {
+                shortages = short
+                return
+            }
+        }
+
+        bill = bill.withQuantity(product, quantity)
+    }
+
+    /**
+     * Back from Add Stock, saved or not, to where it was opened from, with the bill just as it
+     * was. The stock and the product list are read again: stock was probably added, and maybe a
+     * new product too.
+     */
+    fun leaveAddStock() {
+        scope.launch {
+            stockData = db.loadStockData()
+            products = db.productDao().getAllProducts()
+            step = stockReturnStep
+        }
+    }
+
+    // Back steps out of the customer / items page first, and only then leaves the screen. The
+    // Add Stock pages handle Back themselves.
+    BackHandler(enabled = step != Step.AddStock) {
         if (step == Step.Bill) onBackClick() else step = Step.Bill
     }
 
@@ -107,15 +170,29 @@ fun NewBillScreen(
                 bill = bill,
                 editing = editing,
                 invoiceNumber = editInvoiceId ?: newInvoiceNumber,
-                onQuantityChange = { product, quantity ->
-                    bill = bill.withQuantity(product, quantity)
-                },
+                onQuantityChange = { product, quantity -> changeQuantity(product, quantity) },
                 onDateClick = { showDatePicker = true },
                 onCustomerClick = { step = Step.Customer },
                 onAddItemClick = { step = Step.Items },
                 onBackClick = onBackClick,
                 save = { toSave ->
-                    if (editInvoiceId == null) {
+                    // Checked again against the stock as it is right now, in case it moved while the bill was made.
+                    val fresh = db.loadStockData()
+
+                    val short = stockShortages(
+                        asked = toSave.piecesByName(),
+                        entries = fresh.entries,
+                        sold = fresh.sold,
+                        saleDate = toSave.createdAt,
+                        editingInvoice = editInvoiceId,
+                        alreadyOnInvoice = alreadyOnInvoice
+                    )
+
+                    if (short.isNotEmpty()) {
+                        stockData = fresh
+                        shortages = short
+                        null
+                    } else if (editInvoiceId == null) {
                         db.saveBill(toSave)
                     } else {
                         db.updateBill(editInvoiceId, toSave)
@@ -140,10 +217,26 @@ fun NewBillScreen(
             Step.Items -> ItemsPage(
                 products = products,
                 bill = bill,
-                onQuantityChange = { product, quantity ->
-                    bill = bill.withQuantity(product, quantity)
-                },
+                onQuantityChange = { product, quantity -> changeQuantity(product, quantity) },
                 onBackClick = { step = Step.Bill }
+            )
+
+            Step.AddStock -> AddStockFlow(
+                db = db,
+                onBackClick = ::leaveAddStock,
+                onSaved = ::leaveAddStock
+            )
+        }
+
+        shortages?.let { short ->
+            StockShortageDialog(
+                shortages = short,
+                onAddStock = {
+                    shortages = null
+                    stockReturnStep = step
+                    step = Step.AddStock
+                },
+                onDismiss = { shortages = null }
             )
         }
 
@@ -169,7 +262,7 @@ private fun BillPage(
     onCustomerClick: () -> Unit,
     onAddItemClick: () -> Unit,
     onBackClick: () -> Unit,
-    save: suspend (Bill) -> Int,
+    save: suspend (Bill) -> Int?,
     onSaved: (Int) -> Unit
 ) {
     val context = LocalContext.current
@@ -274,7 +367,10 @@ private fun BillPage(
                     saving = true
                     scope.launch {
                         try {
-                            onSaved(save(bill))
+                            // null: the stock can't cover the bill; the message is already showing.
+                            val saved = save(bill)
+
+                            if (saved == null) saving = false else onSaved(saved)
                         } catch (e: Exception) {
                             if (e is CancellationException) throw e
                             saving = false

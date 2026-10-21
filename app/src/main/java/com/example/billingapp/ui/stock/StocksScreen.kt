@@ -41,7 +41,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.billingapp.AppDatabase
-import com.example.billingapp.Product
 import com.example.billingapp.SoldLine
 import com.example.billingapp.StockEntry
 import com.example.billingapp.ui.components.BorderedCard
@@ -55,8 +54,6 @@ import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TopRow
 import com.example.billingapp.ui.newbill.InvoiceDatePickerDialog
-import com.example.billingapp.ui.products.ProductForm
-import com.example.billingapp.ui.products.categoriesOf
 import com.example.billingapp.ui.theme.MoneyGreen
 import com.example.billingapp.util.formatDateTime
 import com.example.billingapp.util.Page
@@ -65,13 +62,10 @@ import com.example.billingapp.util.paginate
 import com.example.billingapp.util.startOfDay
 import kotlinx.coroutines.launch
 
-/** Which page of the Stocks section is showing. */
-private enum class StocksPage { List, Add, NewProduct }
-
 /**
  * Stock, day by day. The list shows, for Today, Yesterday, this month, this year or one picked
  * date, what each product started with, what came in, what was sold and what is left. + Add
- * enters new stock (see [AddStockPage]). Yesterday's leftover is always today's starting point.
+ * enters new stock (see [AddStockFlow]). Yesterday's leftover is always today's starting point.
  */
 @Composable
 fun StocksScreen(
@@ -83,7 +77,6 @@ fun StocksScreen(
     // null = still loading.
     var entries by remember { mutableStateOf<List<StockEntry>?>(null) }
     var sold by remember { mutableStateOf<List<SoldLine>>(emptyList()) }
-    var products by remember { mutableStateOf<List<Product>>(emptyList()) }
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
 
     // One of the two is set: a ready-made period, or a day picked on the calendar.
@@ -91,13 +84,8 @@ fun StocksScreen(
     var pickedDay by remember { mutableStateOf<Long?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    var page by remember { mutableStateOf(StocksPage.List) }
+    var adding by remember { mutableStateOf(false) }
     var pageNumber by remember { mutableStateOf(1) }
-    var newProductName by remember { mutableStateOf("") }
-
-    // What is being added on the Add page, by product name. Lives here so it survives a trip to
-    // the new-product form and back.
-    var draft by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
     var detailName by remember { mutableStateOf<String?>(null) }
     var pendingRemove by remember { mutableStateOf<StockEntry?>(null) }
@@ -105,31 +93,15 @@ fun StocksScreen(
     suspend fun reload() {
         now = System.currentTimeMillis()
 
-        val all = db.stockDao().getAll()
-        entries = all
-
-        // Bills from before the first stock was entered never count, so don't even load them.
-        sold = if (all.isEmpty()) {
-            emptyList()
-        } else {
-            db.invoiceItemDao().getSoldLines(startOfDay(all.minOf { it.addedAt }))
-        }
-
-        products = db.productDao().getAllProducts()
+        val data = db.loadStockData()
+        entries = data.entries
+        sold = data.sold
     }
 
     LaunchedEffect(Unit) { reload() }
 
-    BackHandler {
-        when (page) {
-            StocksPage.NewProduct -> page = StocksPage.Add
-            StocksPage.Add -> {
-                draft = emptyMap()
-                page = StocksPage.List
-            }
-            StocksPage.List -> onBackClick()
-        }
-    }
+    // While adding, the add-stock pages handle Back themselves.
+    BackHandler(enabled = !adding) { onBackClick() }
 
     val allEntries = entries.orEmpty()
 
@@ -141,73 +113,32 @@ fun StocksScreen(
     // is moved to the nearest real one.
     val rowsPage = paginate(rows, pageNumber)
 
-    // What each product has left right now, for the Add page.
-    val leftByName = remember(entries, sold, now) {
-        val (todayStart, todayEnd) = StockPeriod.Today.range(now)
-        stockRows(allEntries, sold, todayStart, todayEnd).associate { it.name to it.remaining }
-    }
-
     val addedToday = remember(entries, now) {
         val (todayStart, todayEnd) = StockPeriod.Today.range(now)
         allEntries.any { it.addedAt >= todayStart && it.addedAt < todayEnd }
     }
 
-    when (page) {
+    if (adding) {
 
-        StocksPage.NewProduct -> ProductForm(
-            existing = null,
-            categories = categoriesOf(products),
-            initialName = newProductName,
-            onBackClick = { page = StocksPage.Add },
-            onSave = { name, price, category ->
+        AddStockFlow(
+            db = db,
+            onBackClick = { adding = false },
+            onSaved = {
                 scope.launch {
-                    db.productDao().insert(Product(name = name, price = price, category = category))
-                    products = db.productDao().getAllProducts()
-
-                    // Straight onto the list being added, ready for its quantity.
-                    draft = draft + (name to (draft[name] ?: 1))
-                    page = StocksPage.Add
-                }
-            },
-            onDelete = {}
-        )
-
-        StocksPage.Add -> AddStockPage(
-            products = products,
-            leftByName = leftByName,
-            draft = draft,
-            onQuantityChange = { product, quantity -> draft = draft + (product.name to quantity) },
-            onNewProduct = {
-                newProductName = it
-                page = StocksPage.NewProduct
-            },
-            onBackClick = {
-                draft = emptyMap()
-                page = StocksPage.List
-            },
-            onSave = {
-                scope.launch {
-                    val at = System.currentTimeMillis()
-
-                    val fresh = draft
-                        .filterValues { it > 0 }
-                        .map { (name, quantity) -> StockEntry(productName = name, quantity = quantity, addedAt = at) }
-
-                    if (fresh.isNotEmpty()) db.stockDao().insertAll(fresh)
-
-                    draft = emptyMap()
                     reload()
 
                     // Show what was just added.
                     period = StockPeriod.Today
                     pickedDay = null
                     pageNumber = 1
-                    page = StocksPage.List
+                    adding = false
                 }
             }
         )
 
-        StocksPage.List -> StockList(
+    } else {
+
+        StockList(
             loaded = entries != null,
             hasAnyStock = allEntries.isNotEmpty(),
             rows = rowsPage,
@@ -223,7 +154,7 @@ fun StocksScreen(
             onPageChange = { pageNumber = it },
             onFilterClick = { showDatePicker = true },
             onRowClick = { detailName = it.name },
-            onAddClick = { page = StocksPage.Add },
+            onAddClick = { adding = true },
             onBackClick = onBackClick
         )
     }
