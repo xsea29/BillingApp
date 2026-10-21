@@ -1,7 +1,5 @@
 package com.example.billingapp.ui.details
 
-import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -42,6 +40,7 @@ import com.example.billingapp.ui.components.TopRow
 import com.example.billingapp.ui.components.TotalBox
 import com.example.billingapp.util.formatDateTime
 import com.example.billingapp.util.formatRupees
+import com.example.billingapp.util.openPdf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -213,18 +212,5 @@ private fun ItemLine(item: InvoiceItem) {
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(start = 12.dp)
         )
-    }
-}
-
-private fun openPdf(context: Context, uri: Uri) {
-    val intent = Intent(Intent.ACTION_VIEW).apply {
-        setDataAndType(uri, "application/pdf")
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-
-    try {
-        context.startActivity(intent)
-    } catch (e: Exception) {
-        Toast.makeText(context, "No PDF viewer found", Toast.LENGTH_SHORT).show()
     }
 }

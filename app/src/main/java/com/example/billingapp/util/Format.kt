@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlin.math.round
 
 /**
  * 1234567.5 -> "₹12,34,567.50" (Indian lakh/crore grouping).
@@ -21,6 +22,23 @@ fun formatRupees(amount: Double): String {
     }
 
     return "₹$grouped.$fraction"
+}
+
+/** Rounds to 2 decimals, so sums of prices never show float noise like 9.950000000000001. */
+fun roundToPaise(value: Double): Double = round(value * 100) / 100
+
+/** 12500 -> "₹12.5K", 200000 -> "₹2L", 30000000 -> "₹3Cr". For chart axes. */
+fun formatRupeesCompact(amount: Double): String {
+    fun trim(value: Double): String =
+        if (value == Math.floor(value)) value.toLong().toString()
+        else String.format(Locale.US, "%.1f", value)
+
+    return "₹" + when {
+        amount >= 1_00_00_000 -> trim(amount / 1_00_00_000) + "Cr"
+        amount >= 1_00_000 -> trim(amount / 1_00_000) + "L"
+        amount >= 1_000 -> trim(amount / 1_000) + "K"
+        else -> trim(amount)
+    }
 }
 
 /** "3:45 PM" */

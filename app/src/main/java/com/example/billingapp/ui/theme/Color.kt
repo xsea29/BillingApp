@@ -9,4 +9,21 @@ val Fill = Color(0xFFF4F5F7)
 val Line = Color(0xFFE6E7EB)
 val Outline = Color(0xFFB9BCC4)
 val Muted = Color(0xFF6F737B)
-val Danger = Color(0xFFD64545)
+val Danger = Color(0xFFD03B3B)
+
+// Charts. Categories use the first five slots of a palette checked for colour-blind
+// safety (adjacent pairs) on a white surface; "Other" is neutral grey.
+val ChartColors = listOf(
+    Color(0xFF2A78D6),
+    Color(0xFFEB6834),
+    Color(0xFF1BAF7A),
+    Color(0xFFEDA100),
+    Color(0xFFE87BA4)
+)
+val ChartOther = Color(0xFFB9BCC4)
+
+// Bars that are not selected.
+val BarMuted = Color(0xFFDADCE1)
+
+// "Up is good" text, dark enough to read on white.
+val DeltaUp = Color(0xFF006300)

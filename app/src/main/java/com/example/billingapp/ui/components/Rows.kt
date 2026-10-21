@@ -130,7 +130,7 @@ fun TotalBox(
         )
         Text(
             text = formatRupees(total),
-            style = MaterialTheme.typography.headlineSmall
+            style = MaterialTheme.typography.displaySmall
         )
     }
 }

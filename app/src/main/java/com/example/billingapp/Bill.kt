@@ -1,10 +1,8 @@
 package com.example.billingapp
 
-import kotlin.math.round
+import com.example.billingapp.util.roundToPaise
 
 const val GST_RATE = 0.05
-
-private fun roundToPaise(value: Double): Double = round(value * 100) / 100
 
 /**
  * A bill that is still being made. Immutable: every change returns a new [Bill],

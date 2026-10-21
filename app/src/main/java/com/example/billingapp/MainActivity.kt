@@ -27,6 +27,7 @@ import com.example.billingapp.ui.details.InvoiceDetailsScreen
 import com.example.billingapp.ui.history.InvoiceHistoryScreen
 import com.example.billingapp.ui.home.HomeScreen
 import com.example.billingapp.ui.newbill.NewBillScreen
+import com.example.billingapp.ui.sales.SalesSummaryScreen
 
 
 class MainActivity : ComponentActivity() {
@@ -161,6 +162,9 @@ fun BillingApp(db: AppDatabase) {
             db = db,
             onBackClick = {
                 currentScreen = "home"
+            },
+            onNewBillClick = {
+                currentScreen = "bill"
             }
         )
     }

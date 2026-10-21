@@ -17,6 +17,13 @@ val SerifFamily = FontFamily(
 private val Sans = FontFamily.Default
 
 val Typography = Typography(
+    // Big figures (totals, headline amounts) stay in the sans so digits and the ₹ sign match.
+    displaySmall = TextStyle(
+        fontFamily = Sans,
+        fontWeight = FontWeight.Medium,
+        fontSize = 32.sp,
+        lineHeight = 38.sp
+    ),
     headlineLarge = TextStyle(
         fontFamily = SerifFamily,
         fontWeight = FontWeight.Normal,
