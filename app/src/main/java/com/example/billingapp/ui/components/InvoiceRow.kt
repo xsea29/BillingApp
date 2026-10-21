@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.billingapp.Invoice
+import com.example.billingapp.ui.theme.MoneyGreen
 import com.example.billingapp.util.formatRupees
 import com.example.billingapp.util.formatTime
 
@@ -101,7 +102,8 @@ fun InvoiceRow(
         ) {
             Text(
                 text = formatRupees(invoice.total),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                color = MoneyGreen
             )
             Text(
                 text = formatTime(invoice.createdAt),

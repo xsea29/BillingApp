@@ -141,7 +141,8 @@ fun LabeledRow(
 @Composable
 fun TotalBox(
     total: Double,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    amountColor: Color = Color.Unspecified
 ) {
     Row(
         modifier = modifier
@@ -160,7 +161,8 @@ fun TotalBox(
         )
         Text(
             text = formatRupees(total),
-            style = MaterialTheme.typography.displaySmall
+            style = MaterialTheme.typography.displaySmall,
+            color = amountColor
         )
     }
 }

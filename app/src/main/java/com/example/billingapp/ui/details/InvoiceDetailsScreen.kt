@@ -38,6 +38,7 @@ import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TextAction
 import com.example.billingapp.ui.components.TopRow
 import com.example.billingapp.ui.components.TotalBox
+import com.example.billingapp.ui.theme.MoneyGreen
 import com.example.billingapp.util.formatDateTime
 import com.example.billingapp.util.formatRupees
 import com.example.billingapp.util.openPdf
@@ -123,7 +124,8 @@ fun InvoiceDetailsScreen(
 
                 TotalBox(
                     total = current.total,
-                    modifier = Modifier.padding(top = 12.dp)
+                    modifier = Modifier.padding(top = 12.dp),
+                    amountColor = MoneyGreen
                 )
             }
 

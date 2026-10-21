@@ -27,3 +27,6 @@ val BarMuted = Color(0xFFDADCE1)
 
 // "Up is good" text, dark enough to read on white.
 val DeltaUp = Color(0xFF006300)
+
+// Invoice amounts. Readable on white (5.0:1) and on the grey total box (4.6:1).
+val MoneyGreen = Color(0xFF15803D)
