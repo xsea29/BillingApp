@@ -32,10 +32,10 @@ import com.example.billingapp.ui.components.AppDrawerSheet
 import com.example.billingapp.ui.components.DeleteInvoiceDialog
 import com.example.billingapp.ui.components.DrawerEntry
 import com.example.billingapp.ui.components.EmptyState
+import com.example.billingapp.ui.components.MenuButton
 import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SegmentedToggle
 import com.example.billingapp.ui.components.SmallCaps
-import com.example.billingapp.ui.components.TextAction
 import com.example.billingapp.ui.components.invoiceGroups
 import com.example.billingapp.util.SalesPeriod
 import com.example.billingapp.util.formatRupees
@@ -186,10 +186,7 @@ private fun HomeTopRow(onMenuClick: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TextAction(
-            text = "Menu",
-            onClick = onMenuClick
-        )
+        MenuButton(onClick = onMenuClick)
 
         SmallCaps(text = today)
     }
