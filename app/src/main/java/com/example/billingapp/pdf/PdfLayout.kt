@@ -207,7 +207,7 @@ fun layoutInvoice(
  * [text], or as much of it as fits in [maxWidth] followed by "…". Cut at a space when that
  * doesn't lose most of the text, so it reads "Special Edition…" and not "Special Edit…".
  */
-private fun fit(text: String, maxWidth: Float, size: Float, face: Face, measure: Measure): String {
+internal fun fit(text: String, maxWidth: Float, size: Float, face: Face, measure: Measure): String {
     if (measure(text, size, face) <= maxWidth) return text
 
     var cut = text

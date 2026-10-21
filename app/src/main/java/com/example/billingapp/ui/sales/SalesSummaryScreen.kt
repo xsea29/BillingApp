@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -15,11 +16,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,7 +47,8 @@ import androidx.compose.ui.unit.sp
 import com.example.billingapp.AppDatabase
 import com.example.billingapp.Invoice
 import com.example.billingapp.InvoiceItem
-import com.example.billingapp.SalesReportPdfGenerator
+import com.example.billingapp.PdfGenerator
+import com.example.billingapp.R
 import com.example.billingapp.ui.components.BorderedCard
 import com.example.billingapp.ui.components.EmptyState
 import com.example.billingapp.ui.components.MiniStat
@@ -58,10 +65,12 @@ import com.example.billingapp.util.SalesPeriod
 import com.example.billingapp.util.formatRupees
 import com.example.billingapp.util.openPdf
 import com.example.billingapp.util.roundToPaise
+import com.example.billingapp.util.sharePdf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import kotlin.math.roundToInt
 
 /** What the screen needs for one period: the raw rows (for the PDF) and the numbers made from them. */
@@ -106,6 +115,10 @@ private suspend fun AppDatabase.loadSales(period: SalesPeriod): SalesData {
     )
 }
 
+/**
+ * Sales for Today / This week / This month. Share (top) sends the PDF report to any app, Download
+ * (bottom left) keeps a copy in Downloads, and the PDF button opens it.
+ */
 @Composable
 fun SalesSummaryScreen(
     db: AppDatabase,
@@ -128,17 +141,70 @@ fun SalesSummaryScreen(
     }
 
     val loaded = data
+    val canExport = loaded != null && loaded.invoices.isNotEmpty() && !generating
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    /**
+     * Builds the report PDF off the main thread and hands it to [then]. Taps are ignored while
+     * one is already being made, so a double tap can't start two.
+     */
+    fun withPdf(failure: String, then: suspend (SalesData, File) -> Unit) {
+        val current = data ?: return
+        if (generating) return
+
+        generating = true
+        scope.launch {
+            try {
+                val file = withContext(Dispatchers.IO) {
+                    PdfGenerator.createSalesReportFile(
+                        context = context,
+                        period = current.period,
+                        report = current.report,
+                        invoices = current.invoices,
+                        items = current.items
+                    )
+                }
+                then(current, file)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Toast.makeText(context, failure, Toast.LENGTH_LONG).show()
+            } finally {
+                generating = false
+            }
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
 
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .weight(1f)
                 .verticalScroll(rememberScrollState())
                 .padding(start = 24.dp, end = 24.dp, top = 8.dp)
         ) {
 
-            TopRow(startText = "Back", onStartClick = onBackClick)
+            TopRow(startText = "Back", onStartClick = onBackClick) {
+                IconButton(
+                    onClick = {
+                        withPdf("Could not make the report to share") { current, file ->
+                            sharePdf(
+                                context = context,
+                                uri = PdfGenerator.uriFor(context, file),
+                                subject = "Monginis sales report: ${current.period.label}",
+                                message = "Monginis sales report for ${current.period.label.lowercase()}. " +
+                                        "Total ${formatRupees(current.report.total)} from " +
+                                        "${current.report.billCount} ${if (current.report.billCount == 1) "bill" else "bills"}."
+                            )
+                        }
+                    },
+                    enabled = canExport
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_share),
+                        contentDescription = "Share sales report",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
 
             Text(
                 text = "Sales",
@@ -175,53 +241,62 @@ fun SalesSummaryScreen(
                 SalesContent(loaded)
             }
 
-            // Room for the floating PDF button.
-            Spacer(modifier = Modifier.height(120.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
-        RoundActionButton(
-            text = "PDF",
-            enabled = loaded != null && loaded.invoices.isNotEmpty() && !generating,
-            onClick = {
-                val current = loaded ?: return@RoundActionButton
-
-                generating = true
-                scope.launch {
-                    try {
-                        val uri = withContext(Dispatchers.IO) {
-                            SalesReportPdfGenerator.generateSalesReportPdf(
-                                context = context,
-                                invoices = current.invoices,
-                                invoiceItems = current.items,
-                                period = current.period.label
-                            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Saves a copy in the phone's Downloads folder.
+            FilledTonalButton(
+                onClick = {
+                    withPdf("Could not make the report") { _, file ->
+                        val saved = withContext(Dispatchers.IO) {
+                            PdfGenerator.saveToDownloads(context, file)
                         }
 
                         Toast.makeText(
                             context,
-                            "Sales report saved to Downloads/Monginis Bills",
+                            if (saved) {
+                                "Saved to Downloads/Monginis Bills"
+                            } else {
+                                "Couldn't save to Downloads on this phone. Use Share to send or save the PDF."
+                            },
                             Toast.LENGTH_LONG
                         ).show()
+                    }
+                },
+                enabled = canExport,
+                modifier = Modifier.height(52.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 22.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_download),
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp)
+                )
 
-                        openPdf(context, uri)
+                Spacer(modifier = Modifier.width(10.dp))
 
-                    } catch (e: Exception) {
-                        if (e is CancellationException) throw e
+                Text("Download")
+            }
 
-                        Toast.makeText(
-                            context,
-                            "Failed to generate PDF",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    } finally {
-                        generating = false
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Opens the report to read or print.
+            RoundActionButton(
+                text = "PDF",
+                enabled = canExport,
+                onClick = {
+                    withPdf("Could not make the report") { _, file ->
+                        openPdf(context, PdfGenerator.uriFor(context, file))
                     }
                 }
-            },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(24.dp)
-        )
+            )
+        }
     }
 }
 

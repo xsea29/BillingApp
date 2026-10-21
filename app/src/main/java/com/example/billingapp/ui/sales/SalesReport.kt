@@ -100,6 +100,39 @@ fun buildSalesReport(
     )
 }
 
+/** One day of the period: what was billed, for the "Sales by day" table of the PDF. */
+data class DaySales(
+    /** Midnight at the start of the day. */
+    val dayStart: Long,
+    val bills: Int,
+    /** Pieces sold that day. */
+    val items: Int,
+    val subtotal: Double,
+    val gst: Double,
+    val total: Double
+)
+
+/** One [DaySales] per day that had bills, oldest first. */
+fun dailySales(invoices: List<Invoice>, items: List<InvoiceItem>): List<DaySales> {
+    val piecesByInvoice = items
+        .groupBy { it.invoiceId }
+        .mapValues { (_, lines) -> lines.sumOf { it.quantity } }
+
+    return invoices
+        .groupBy { startOfDay(it.createdAt) }
+        .map { (day, bills) ->
+            DaySales(
+                dayStart = day,
+                bills = bills.size,
+                items = bills.sumOf { piecesByInvoice[it.id] ?: 0 },
+                subtotal = roundToPaise(bills.sumOf { it.subtotal }),
+                gst = roundToPaise(bills.sumOf { it.gst }),
+                total = roundToPaise(bills.sumOf { it.total })
+            )
+        }
+        .sortedBy { it.dayStart }
+}
+
 /**
  * Percent change from [previous] to [current], or null when there is nothing to compare
  * against (a percentage of zero means nothing).

@@ -15,17 +15,24 @@ import androidx.core.content.FileProvider
 import androidx.core.content.res.ResourcesCompat
 import com.example.billingapp.pdf.Align
 import com.example.billingapp.pdf.Face
+import com.example.billingapp.pdf.Measure
 import com.example.billingapp.pdf.PAGE_HEIGHT
 import com.example.billingapp.pdf.PAGE_WIDTH
 import com.example.billingapp.pdf.PdfOp
 import com.example.billingapp.pdf.PdfPage
 import com.example.billingapp.pdf.layoutInvoice
+import com.example.billingapp.pdf.layoutSalesReport
+import com.example.billingapp.pdf.salesReportFileName
+import com.example.billingapp.pdf.salesReportInput
+import com.example.billingapp.ui.sales.SalesReport
+import com.example.billingapp.util.SalesPeriod
 import java.io.File
 import java.io.FileOutputStream
 
 /**
- * Turns an invoice into a PDF file. What goes where on the page is decided by [layoutInvoice]
- * (plain code, tested); this only draws those instructions with Android's PDF canvas.
+ * Turns an invoice or a sales report into a PDF file. What goes where on the page is decided by
+ * [layoutInvoice] and [layoutSalesReport] (plain code, tested); this only draws those
+ * instructions with Android's PDF canvas.
  */
 object PdfGenerator {
 
@@ -36,19 +43,45 @@ object PdfGenerator {
      * ("Invoice_28.pdf"), so making it again replaces the old one instead of piling up copies.
      * Use [uriFor] to hand it to the viewer or the share sheet, [saveToDownloads] to keep a copy.
      */
-    fun createInvoiceFile(context: Context, invoice: Invoice, items: List<InvoiceItem>): File {
+    fun createInvoiceFile(context: Context, invoice: Invoice, items: List<InvoiceItem>): File =
+        writePdf(context, "Invoice_${invoice.id}.pdf") { measure ->
+            layoutInvoice(invoice, items, measure)
+        }
+
+    /** The sales report for [period], built the same way; see [createInvoiceFile]. */
+    fun createSalesReportFile(
+        context: Context,
+        period: SalesPeriod,
+        report: SalesReport,
+        invoices: List<Invoice>,
+        items: List<InvoiceItem>
+    ): File {
+        val now = System.currentTimeMillis()
+        val input = salesReportInput(period, report, invoices, items, now)
+
+        return writePdf(context, salesReportFileName(period, now)) { measure ->
+            layoutSalesReport(input, measure)
+        }
+    }
+
+    private fun writePdf(
+        context: Context,
+        fileName: String,
+        layout: (Measure) -> List<PdfPage>
+    ): File {
         val fonts = Fonts(context)
 
         // The layout needs real text widths to cut long names and wrap lines.
         val ruler = Paint(Paint.ANTI_ALIAS_FLAG)
-        val pages = layoutInvoice(invoice, items) { text, size, face ->
+        val pages = layout { text, size, face ->
             ruler.typeface = fonts.of(face)
             ruler.textSize = size
             ruler.measureText(text)
         }
 
+        // Shared with the sales reports: the folder the FileProvider is allowed to hand out.
         val folder = File(context.cacheDir, "invoices").apply { mkdirs() }
-        val file = File(folder, "Invoice_${invoice.id}.pdf")
+        val file = File(folder, fileName)
 
         val document = PdfDocument()
 
