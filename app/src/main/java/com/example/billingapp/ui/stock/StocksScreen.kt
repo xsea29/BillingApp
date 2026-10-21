@@ -1,6 +1,7 @@
 package com.example.billingapp.ui.stock
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -54,6 +57,7 @@ import com.example.billingapp.ui.components.TopRow
 import com.example.billingapp.ui.newbill.InvoiceDatePickerDialog
 import com.example.billingapp.ui.products.ProductForm
 import com.example.billingapp.ui.products.categoriesOf
+import com.example.billingapp.ui.theme.MoneyGreen
 import com.example.billingapp.util.formatDateTime
 import com.example.billingapp.util.Page
 import com.example.billingapp.util.moveToPickedDay
@@ -433,7 +437,10 @@ private fun AddTodayCard(onAddClick: () -> Unit, modifier: Modifier = Modifier) 
     }
 }
 
-/** Name and "Opening 5 · Added 12 · Sold 7" on the left, what is left on the right. Tap for details. */
+/**
+ * Name and "Opening 5 · Added 12" on the left; on the right, what was sold (green) and what is left
+ * (red) as two numbers with their labels under them: "4 | 18". Tap for details.
+ */
 @Composable
 private fun StockRowItem(row: StockRow, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
@@ -456,23 +463,44 @@ private fun StockRowItem(row: StockRow, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = "Opening ${row.opening} · Added ${row.added} · Sold ${row.sold}",
+                text = "Opening ${row.opening} · Added ${row.added}",
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant
             )
         }
 
-        Column(
+        Row(
             modifier = Modifier.padding(start = 12.dp),
-            horizontalAlignment = Alignment.End
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = row.remaining.toString(),
-                style = MaterialTheme.typography.titleLarge,
-                color = if (row.remaining < 0) colors.error else colors.onSurface
+            Figure(value = row.sold, label = "Sold", color = MoneyGreen)
+
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(32.dp)
+                    .background(colors.outlineVariant)
             )
-            SmallCaps(text = "Left")
+
+            Figure(value = row.remaining, label = "Left", color = colors.error)
         }
+    }
+}
+
+/** A number with its small-caps label under it, right-aligned: "4" over "SOLD". */
+@Composable
+private fun Figure(value: Int, label: String, color: Color) {
+    Column(
+        modifier = Modifier.widthIn(min = 44.dp),
+        horizontalAlignment = Alignment.End
+    ) {
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.titleLarge,
+            color = color
+        )
+        SmallCaps(text = label)
     }
 }
 
