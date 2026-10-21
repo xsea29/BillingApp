@@ -18,11 +18,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 
-/** Grey pill with a white "thumb" under the selected option (Unpaid | Paid). */
+/** Grey pill with a white "thumb" under the selected option (Unpaid | Paid). Null = none selected. */
 @Composable
 fun <T> SegmentedToggle(
     options: List<T>,
-    selected: T,
+    selected: T?,
     label: (T) -> String,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier

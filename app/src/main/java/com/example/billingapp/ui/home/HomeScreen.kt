@@ -33,14 +33,18 @@ import com.example.billingapp.ui.components.AppDrawerSheet
 import com.example.billingapp.ui.components.DeleteInvoiceDialog
 import com.example.billingapp.ui.components.DrawerEntry
 import com.example.billingapp.ui.components.EmptyState
+import com.example.billingapp.ui.components.FilterMenuButton
 import com.example.billingapp.ui.components.MenuButton
 import com.example.billingapp.ui.components.PaginationBar
 import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SegmentedToggle
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.invoiceGroups
+import com.example.billingapp.util.LAST_DAYS_CHOICES
 import com.example.billingapp.util.SalesPeriod
 import com.example.billingapp.util.formatRupees
+import com.example.billingapp.util.lastDaysLabel
+import com.example.billingapp.util.lastDaysRange
 import com.example.billingapp.util.paginate
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -59,6 +63,9 @@ fun HomeScreen(
 ) {
     var period by remember { mutableStateOf(SalesPeriod.Today) }
 
+    // Set by the filter button: "last 7 days" and so on. While it is set it replaces [period].
+    var lastDays by remember { mutableStateOf<Int?>(null) }
+
     // null = still loading, so we don't flash "No bills" before the query returns.
     var invoices by remember { mutableStateOf<List<Invoice>?>(null) }
     var pendingDelete by remember { mutableStateOf<Invoice?>(null) }
@@ -69,8 +76,8 @@ fun HomeScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(period, reload) {
-        val (start, end) = period.range()
+    LaunchedEffect(period, lastDays, reload) {
+        val (start, end) = lastDays?.let { lastDaysRange(it) } ?: period.range()
         invoices = db.invoiceDao()
             .getInvoicesBetween(start, end)
             .sortedByDescending { it.createdAt }
@@ -124,32 +131,64 @@ fun HomeScreen(
                             style = MaterialTheme.typography.headlineLarge
                         )
 
-                        SegmentedToggle(
-                            options = SalesPeriod.values().toList(),
-                            selected = period,
-                            label = { it.label },
-                            onSelect = {
-                                period = it
-                                pageNumber = 1
-                            }
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Nothing is highlighted while a "last N days" filter is on.
+                            SegmentedToggle(
+                                options = SalesPeriod.values().toList(),
+                                selected = if (lastDays == null) period else null,
+                                label = { it.label },
+                                onSelect = {
+                                    period = it
+                                    lastDays = null
+                                    pageNumber = 1
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            FilterMenuButton(
+                                choices = LAST_DAYS_CHOICES,
+                                selected = lastDays,
+                                label = { lastDaysLabel(it) },
+                                onSelect = {
+                                    lastDays = it
+                                    pageNumber = 1
+                                },
+                                contentDescription = "Filter by last days"
+                            )
+                        }
                     }
                 }
 
                 val loaded = invoices
+                val days = lastDays
 
                 if (loaded != null && loaded.isEmpty()) {
 
                     item {
-                        EmptyState(
-                            title = "No bills yet",
-                            message = "Tap + New to create one."
-                        )
+                        if (days == null) {
+                            EmptyState(
+                                title = "No bills yet",
+                                message = "Tap + New to create one."
+                            )
+                        } else {
+                            EmptyState(
+                                title = "No bills in the ${lastDaysLabel(days).lowercase()}",
+                                message = "Try a longer range, or tap + New to create one."
+                            )
+                        }
                     }
 
                 } else if (loaded != null) {
 
-                    item { SalesSummary(loaded) }
+                    item {
+                        SalesSummary(
+                            invoices = loaded,
+                            title = if (days == null) "Sales" else lastDaysLabel(days)
+                        )
+                    }
 
                     // The summary above counts every bill of the period; the list shows 10 at a time.
                     val page = paginate(loaded, pageNumber)
@@ -214,9 +253,9 @@ private fun HomeTopRow(onMenuClick: () -> Unit) {
     }
 }
 
-/** "SALES · 14 BILLS" on the left, the total on the right. */
+/** "SALES · 14 BILLS" on the left, the total on the right. [title] is "Last 7 days" when filtered. */
 @Composable
-private fun SalesSummary(invoices: List<Invoice>) {
+private fun SalesSummary(invoices: List<Invoice>, title: String) {
     val count = invoices.size
 
     Row(
@@ -226,7 +265,7 @@ private fun SalesSummary(invoices: List<Invoice>) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        SmallCaps(text = "Sales · $count ${if (count == 1) "bill" else "bills"}")
+        SmallCaps(text = "$title · $count ${if (count == 1) "bill" else "bills"}")
 
         Text(
             text = formatRupees(invoices.sumOf { it.total }),
