@@ -176,7 +176,7 @@ fun CustomerDetail(
         if (bills.isEmpty()) {
 
             Text(
-                text = "No bills for this phone number yet.",
+                text = "No bills for this customer yet.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = muted
             )

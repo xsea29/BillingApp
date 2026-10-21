@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
             AppDatabase::class.java,
             "cake_db"
         )
-            .addMigrations(MIGRATION_6_7)
+            .addMigrations(MIGRATION_6_7, MIGRATION_7_8)
             .build()
 
         lifecycleScope.launch {
@@ -42,12 +42,12 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            // Bills made before customers were saved automatically: add their customers, once.
+            // Bills made before invoices knew their customer: link them to customers, once.
             val prefs = getSharedPreferences("monginis", MODE_PRIVATE)
 
-            if (!prefs.getBoolean("customers_from_bills_done", false)) {
-                db.addCustomersFromInvoices()
-                prefs.edit().putBoolean("customers_from_bills_done", true).apply()
+            if (!prefs.getBoolean("invoices_linked_to_customers", false)) {
+                db.linkInvoicesToCustomers()
+                prefs.edit().putBoolean("invoices_linked_to_customers", true).apply()
             }
         }
 

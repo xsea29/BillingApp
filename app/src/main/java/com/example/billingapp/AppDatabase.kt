@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         Invoice::class,
         InvoiceItem::class
     ],
-    version = 7
+    version = 8
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -35,5 +35,15 @@ abstract class AppDatabase : RoomDatabase() {
 val MIGRATION_6_7 = object : Migration(6, 7) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE customers ADD COLUMN email TEXT NOT NULL DEFAULT ''")
+    }
+}
+
+/**
+ * v8: each invoice records which customer it belongs to. Existing invoices start at 0 ("not
+ * linked yet"); they are linked once, at the next start, by [linkInvoicesToCustomers].
+ */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE invoices ADD COLUMN customerId INTEGER NOT NULL DEFAULT 0")
     }
 }

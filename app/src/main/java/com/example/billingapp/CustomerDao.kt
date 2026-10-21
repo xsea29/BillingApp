@@ -9,8 +9,9 @@ import androidx.room.Update
 @Dao
 interface CustomerDao {
 
+    // Returns the new customer's id.
     @Insert
-    suspend fun insert(customer: Customer)
+    suspend fun insert(customer: Customer): Long
 
     @Query("SELECT * FROM customers")
     suspend fun getAllCustomers(): List<Customer>

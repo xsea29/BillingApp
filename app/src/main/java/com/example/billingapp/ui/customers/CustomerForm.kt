@@ -26,14 +26,14 @@ import androidx.compose.ui.unit.dp
 import com.example.billingapp.Customer
 import com.example.billingapp.isValidEmail
 import com.example.billingapp.isValidPhone
-import com.example.billingapp.otherCustomerWithPhone
+import com.example.billingapp.otherCustomerWithSameDetails
 import com.example.billingapp.ui.components.ConfirmDialog
 import com.example.billingapp.ui.components.TopRow
 
 /**
  * Add a customer ([existing] = null) or change one. Name and a 10-digit phone number are
- * required; email is optional. Two customers can't share a phone number, because a
- * customer's bills are found by phone.
+ * required; email is optional. The same name with the same number can't be saved twice, but
+ * different people may share a number.
  */
 @Composable
 fun CustomerForm(
@@ -48,8 +48,10 @@ fun CustomerForm(
     var email by remember { mutableStateOf(existing?.email.orEmpty()) }
     var confirmDelete by remember { mutableStateOf(false) }
 
-    val duplicate = if (isValidPhone(phone)) {
-        otherCustomerWithPhone(phone, customers, ignoreId = existing?.id)
+    // Two different people can share a number (a family, the shop's phone); only the same name
+    // with the same number is a duplicate.
+    val duplicate = if (name.isNotBlank() && isValidPhone(phone)) {
+        otherCustomerWithSameDetails(name, phone, customers, ignoreId = existing?.id)
     } else {
         null
     }
@@ -100,8 +102,7 @@ fun CustomerForm(
                 isError = duplicate != null,
                 supportingText = {
                     when {
-                        duplicate != null -> Text("Already saved for ${duplicate.name}")
-                        existing != null -> Text("10 digits. Past bills are linked to this number.")
+                        duplicate != null -> Text("${duplicate.name} is already saved with this number")
                         else -> Text("10 digits")
                     }
                 },

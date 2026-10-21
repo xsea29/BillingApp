@@ -91,7 +91,7 @@ fun CustomersScreen(
     LaunchedEffect(Unit) { reload() }
 
     val all = customers.orEmpty()
-    val stats = remember(invoices) { statsByPhone(invoices) }
+    val stats = remember(invoices) { statsByCustomer(invoices) }
     val opened = openCustomerId?.let { id -> all.firstOrNull { it.id == id } }
     val editing = editor
 
@@ -139,7 +139,7 @@ fun CustomersScreen(
 
         opened != null -> CustomerDetail(
             customer = opened,
-            stats = stats[opened.phone] ?: CustomerStats(),
+            stats = stats[opened.id] ?: CustomerStats(),
             bills = billsOf(opened, invoices),
             onBackClick = { onOpenCustomerChange(null) },
             onEditClick = { editor = Editor(opened) },
@@ -192,7 +192,7 @@ private fun CustomerList(
     loaded: Boolean,
     total: Int,
     page: Page<Customer>,
-    stats: Map<String, CustomerStats>,
+    stats: Map<Int, CustomerStats>,
     query: String,
     onQueryChange: (String) -> Unit,
     sort: CustomerSort,
@@ -282,7 +282,7 @@ private fun CustomerList(
                 items(page.items, key = { it.id }) { customer ->
                     CustomerCard(
                         customer = customer,
-                        stats = stats[customer.phone],
+                        stats = stats[customer.id],
                         onClick = { onCustomerClick(customer) }
                     )
                 }

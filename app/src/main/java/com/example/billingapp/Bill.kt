@@ -18,6 +18,8 @@ fun nextInvoiceNumber(lastId: Int?): Int = (lastId ?: 0) + 1
 data class Bill(
     val customerName: String = "",
     val customerPhone: String = "",
+    /** The saved customer this bill is for, if one was picked or matched; 0 = decided when saved. */
+    val customerId: Int = 0,
     val items: List<BillItem> = emptyList(),
     /** When the bill is dated. Starts as "now"; can be moved to an earlier day. */
     val createdAt: Long = System.currentTimeMillis()
@@ -54,8 +56,8 @@ data class Bill(
         return copy(items = updated)
     }
 
-    fun withCustomer(name: String, phone: String): Bill =
-        copy(customerName = name, customerPhone = phone)
+    fun withCustomer(name: String, phone: String, customerId: Int = 0): Bill =
+        copy(customerName = name, customerPhone = phone, customerId = customerId)
 
     fun withDate(createdAt: Long): Bill =
         copy(createdAt = createdAt)
@@ -104,6 +106,7 @@ fun billFromInvoice(
     return Bill(
         customerName = invoice.customerName,
         customerPhone = invoice.phoneNumber,
+        customerId = invoice.customerId,
         items = lines,
         createdAt = invoice.createdAt
     )

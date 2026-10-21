@@ -129,9 +129,10 @@ fun NewBillScreen(
                 customers = customers,
                 initialName = bill.customerName,
                 initialPhone = bill.customerPhone,
+                initialCustomerId = bill.customerId,
                 onBackClick = { step = Step.Bill },
-                onDone = { name, phone ->
-                    bill = bill.withCustomer(name, phone)
+                onDone = { name, phone, customerId ->
+                    bill = bill.withCustomer(name, phone, customerId)
                     step = Step.Bill
                 }
             )

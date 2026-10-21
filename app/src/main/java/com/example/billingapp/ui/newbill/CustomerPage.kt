@@ -28,25 +28,35 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.billingapp.Customer
+import com.example.billingapp.findCustomer
 import com.example.billingapp.isValidPhone
 import com.example.billingapp.ui.components.InitialAvatar
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TopRow
 
 /**
- * Type a name and phone to use for this bill. While typing, saved customers that
- * match are listed underneath: tap one to use it, or press Done to use what was typed.
+ * Choose who the bill is for. Tap a saved customer to bill that person, or type a name and phone:
+ * the same name and phone as someone saved is that person, anything else is a new customer (even
+ * if the number is already saved for someone else). [onDone] also reports which saved customer it
+ * is, or 0 when it will be added as new.
  */
 @Composable
 fun CustomerPage(
     customers: List<Customer>,
     initialName: String,
     initialPhone: String,
+    initialCustomerId: Int,
     onBackClick: () -> Unit,
-    onDone: (name: String, phone: String) -> Unit
+    onDone: (name: String, phone: String, customerId: Int) -> Unit
 ) {
     var name by remember { mutableStateOf(initialName) }
     var phone by remember { mutableStateOf(initialPhone) }
+
+    // The saved customer the bill was linked to, if any. Typing anything new breaks that link:
+    // from then on it is whoever the typed name and phone say.
+    var pickedId by remember { mutableStateOf(initialCustomerId) }
+
+    val saved = customers.firstOrNull { it.id == pickedId } ?: findCustomer(name, phone, customers)
 
     val matches = remember(customers, name, phone) {
         customers
@@ -73,7 +83,10 @@ fun CustomerPage(
 
         OutlinedTextField(
             value = name,
-            onValueChange = { name = it },
+            onValueChange = {
+                name = it
+                pickedId = 0
+            },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Name") },
             placeholder = { Text("Sirsendu Roy") },
@@ -91,18 +104,22 @@ fun CustomerPage(
             onValueChange = {
                 if (it.length <= 10 && it.all { char -> char.isDigit() }) {
                     phone = it
+                    pickedId = 0
                 }
             },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Phone") },
             placeholder = { Text("9876543210") },
             supportingText = {
+                val sharing = customers.firstOrNull { it.phone == phone }
+
                 when {
                     phone.isEmpty() -> Text("Optional")
                     !isValidPhone(phone) -> Text("Enter all 10 digits to add them to Customers")
-                    customers.any { it.phone == phone } -> Text("Saved customer")
+                    saved != null -> Text("Saved customer")
                     name.isBlank() -> Text("Add a name to save this customer")
-                    else -> Text("Will be added to Customers")
+                    sharing != null -> Text("New customer. This number is also saved for ${sharing.name}")
+                    else -> Text("Will be added as a new customer")
                 }
             },
             singleLine = true,
@@ -122,7 +139,7 @@ fun CustomerPage(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onDone(customer.name, customer.phone) }
+                        .clickable { onDone(customer.name, customer.phone, customer.id) }
                         .padding(vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -146,7 +163,7 @@ fun CustomerPage(
         }
 
         Button(
-            onClick = { onDone(name.trim(), phone) },
+            onClick = { onDone(name.trim(), phone, saved?.id ?: 0) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 24.dp)

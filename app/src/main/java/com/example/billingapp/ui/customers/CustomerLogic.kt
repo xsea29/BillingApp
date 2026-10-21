@@ -19,13 +19,13 @@ data class CustomerStats(
 )
 
 /**
- * Invoices only store the customer's name and phone as text, so a customer's bills are the
- * ones with the same phone number. Bills without a phone number belong to nobody in particular.
+ * Totals per customer, keyed by customer id. Each invoice says which customer it is for;
+ * bills that aren't linked to anyone (id 0) count for nobody.
  */
-fun statsByPhone(invoices: List<Invoice>): Map<String, CustomerStats> =
+fun statsByCustomer(invoices: List<Invoice>): Map<Int, CustomerStats> =
     invoices
-        .filter { it.phoneNumber.isNotBlank() }
-        .groupBy { it.phoneNumber }
+        .filter { it.customerId != 0 }
+        .groupBy { it.customerId }
         .mapValues { (_, bills) ->
             CustomerStats(
                 billCount = bills.size,
@@ -34,15 +34,11 @@ fun statsByPhone(invoices: List<Invoice>): Map<String, CustomerStats> =
             )
         }
 
-/** The customer's bills, newest first. */
+/** The customer's bills (the ones that say they are for this customer), newest first. */
 fun billsOf(customer: Customer, invoices: List<Invoice>): List<Invoice> =
-    if (customer.phone.isBlank()) {
-        emptyList()
-    } else {
-        invoices
-            .filter { it.phoneNumber == customer.phone }
-            .sortedByDescending { it.createdAt }
-    }
+    invoices
+        .filter { it.customerId == customer.id }
+        .sortedByDescending { it.createdAt }
 
 /** Customers whose name, phone or email contains [query] (blank = everyone). */
 fun filterCustomers(customers: List<Customer>, query: String): List<Customer> {
@@ -58,7 +54,7 @@ fun filterCustomers(customers: List<Customer>, query: String): List<Customer> {
 
 fun sortCustomers(
     customers: List<Customer>,
-    stats: Map<String, CustomerStats>,
+    stats: Map<Int, CustomerStats>,
     sort: CustomerSort
 ): List<Customer> {
     val byName = compareBy<Customer> { it.name.lowercase() }
@@ -67,12 +63,12 @@ fun sortCustomers(
         CustomerSort.Name -> customers.sortedWith(byName)
 
         CustomerSort.TopSpenders -> customers.sortedWith(
-            compareByDescending<Customer> { stats[it.phone]?.totalSpent ?: 0.0 }.then(byName)
+            compareByDescending<Customer> { stats[it.id]?.totalSpent ?: 0.0 }.then(byName)
         )
 
         // People who have never bought go last.
         CustomerSort.Recent -> customers.sortedWith(
-            compareByDescending<Customer> { stats[it.phone]?.lastVisit ?: Long.MIN_VALUE }.then(byName)
+            compareByDescending<Customer> { stats[it.id]?.lastVisit ?: Long.MIN_VALUE }.then(byName)
         )
     }
 }

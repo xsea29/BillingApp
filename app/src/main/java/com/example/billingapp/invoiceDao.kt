@@ -15,6 +15,9 @@ interface InvoiceDao {
     @Update
     suspend fun update(invoice: Invoice): Int
 
+    @Query("UPDATE invoices SET customerId = :customerId WHERE id = :invoiceId")
+    suspend fun setCustomerId(invoiceId: Int, customerId: Int)
+
     @Query("DELETE FROM invoices WHERE id = :invoiceId")
     suspend fun deleteById(invoiceId: Int)
 
