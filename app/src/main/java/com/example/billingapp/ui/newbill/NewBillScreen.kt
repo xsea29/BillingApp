@@ -2,7 +2,6 @@ package com.example.billingapp.ui.newbill
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,6 +40,7 @@ import com.example.billingapp.ui.components.QuantityStepper
 import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TopRow
+import com.example.billingapp.ui.components.TotalBox
 import com.example.billingapp.util.formatRupees
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -198,7 +198,10 @@ private fun BillPage(
                 value = formatRupees(bill.gst)
             )
 
-            TotalBox(total = bill.total)
+            TotalBox(
+                total = bill.total,
+                modifier = Modifier.padding(top = 12.dp)
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -276,32 +279,6 @@ private fun BillLine(
             text = formatRupees(item.amount()),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(start = 12.dp)
-        )
-    }
-}
-
-/** The grey rounded box that holds the final amount (the "Amount Due" box in the design). */
-@Composable
-private fun TotalBox(total: Double) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 12.dp)
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = MaterialTheme.shapes.medium
-            )
-            .padding(horizontal = 20.dp, vertical = 20.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "Total",
-            style = MaterialTheme.typography.titleMedium
-        )
-        Text(
-            text = formatRupees(total),
-            style = MaterialTheme.typography.headlineSmall
         )
     }
 }

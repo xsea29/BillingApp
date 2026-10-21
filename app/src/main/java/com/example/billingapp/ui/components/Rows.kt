@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.billingapp.util.formatRupees
 
 /** Outlined row with a round arrow on the right ("Add Customer →"). [subtitle] is optional detail. */
 @Composable
@@ -102,6 +103,34 @@ fun LabeledRow(
             text = value,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = weight
+        )
+    }
+}
+
+/** The grey rounded box that holds the final amount (the "Amount Due" box in the design). */
+@Composable
+fun TotalBox(
+    total: Double,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.medium
+            )
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Total",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = formatRupees(total),
+            style = MaterialTheme.typography.headlineSmall
         )
     }
 }

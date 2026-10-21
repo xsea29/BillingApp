@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -25,15 +24,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.billingapp.AppDatabase
 import com.example.billingapp.Invoice
-import com.example.billingapp.ui.components.InvoiceRow
+import com.example.billingapp.ui.components.EmptyState
 import com.example.billingapp.ui.components.RoundActionButton
 import com.example.billingapp.ui.components.SegmentedToggle
 import com.example.billingapp.ui.components.SmallCaps
 import com.example.billingapp.ui.components.TextAction
+import com.example.billingapp.ui.components.invoiceGroups
 import com.example.billingapp.util.SalesPeriod
-import com.example.billingapp.util.dayLabel
 import com.example.billingapp.util.formatRupees
-import com.example.billingapp.util.startOfDay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -105,30 +103,18 @@ fun HomeScreen(
 
             if (loaded != null && loaded.isEmpty()) {
 
-                item { EmptyState() }
+                item {
+                    EmptyState(
+                        title = "No bills yet",
+                        message = "Tap + New to create one."
+                    )
+                }
 
             } else if (loaded != null) {
 
                 item { SalesSummary(loaded) }
 
-                loaded
-                    .groupBy { startOfDay(it.createdAt) }
-                    .forEach { (_, dayInvoices) ->
-
-                        item(key = "day-${dayInvoices.first().id}") {
-                            SmallCaps(
-                                text = dayLabel(dayInvoices.first().createdAt),
-                                modifier = Modifier.padding(top = 20.dp, bottom = 4.dp)
-                            )
-                        }
-
-                        items(dayInvoices, key = { it.id }) { invoice ->
-                            InvoiceRow(
-                                invoice = invoice,
-                                onClick = { onInvoiceClick(invoice.id) }
-                            )
-                        }
-                    }
+                invoiceGroups(loaded, onInvoiceClick)
             }
         }
 
@@ -213,27 +199,6 @@ private fun SalesSummary(invoices: List<Invoice>) {
         Text(
             text = formatRupees(invoices.sumOf { it.total }),
             style = MaterialTheme.typography.titleMedium
-        )
-    }
-}
-
-@Composable
-private fun EmptyState() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 72.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(
-            text = "No bills yet",
-            style = MaterialTheme.typography.titleLarge
-        )
-        Text(
-            text = "Tap + New to create one.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

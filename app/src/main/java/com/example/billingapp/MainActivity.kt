@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Card
 import androidx.compose.foundation.layout.Spacer
 import kotlinx.coroutines.GlobalScope
+import com.example.billingapp.ui.details.InvoiceDetailsScreen
+import com.example.billingapp.ui.history.InvoiceHistoryScreen
 import com.example.billingapp.ui.home.HomeScreen
 import com.example.billingapp.ui.newbill.NewBillScreen
 
@@ -141,6 +143,9 @@ fun BillingApp(db: AppDatabase) {
                 invoiceDetailsBackTo = "invoiceHistory"
                 currentScreen = "invoiceDetails"
 
+            },
+            onNewBillClick = {
+                currentScreen = "bill"
             }
         )
         "invoiceDetails" -> InvoiceDetailsScreen(

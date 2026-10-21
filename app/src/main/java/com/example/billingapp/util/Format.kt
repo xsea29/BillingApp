@@ -27,6 +27,10 @@ fun formatRupees(amount: Double): String {
 fun formatTime(timeMillis: Long): String =
     SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(timeMillis))
 
+/** "21 Oct 2026, 3:45 PM" */
+fun formatDateTime(timeMillis: Long): String =
+    SimpleDateFormat("d MMM yyyy, h:mm a", Locale.getDefault()).format(Date(timeMillis))
+
 /** Midnight at the start of the day that contains [timeMillis]. */
 fun startOfDay(timeMillis: Long): Long =
     Calendar.getInstance().apply {
