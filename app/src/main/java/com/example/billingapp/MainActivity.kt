@@ -23,7 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Card
 import androidx.compose.foundation.layout.Spacer
 import kotlinx.coroutines.GlobalScope
-import androidx.activity.compose.BackHandler
+import com.example.billingapp.ui.home.HomeScreen
 
 
 class MainActivity : ComponentActivity() {
@@ -74,24 +74,33 @@ fun BillingApp(db: AppDatabase) {
     var selectedInvoiceId by remember {
         mutableStateOf(0)
     }
+    var invoiceDetailsBackTo by remember {
+        mutableStateOf("invoiceHistory")
+    }
 
     when (currentScreen) {
 
         "home" -> HomeScreen(
-            onCustomersClick = {
-                currentScreen = "customers"
-            },
-            onProductsClick = {
-                currentScreen = "products"
-            },
+            db = db,
             onNewBillClick = {
                 currentScreen = "bill"
+            },
+            onInvoiceClick = {
+                selectedInvoiceId = it
+                invoiceDetailsBackTo = "home"
+                currentScreen = "invoiceDetails"
             },
             onInvoiceHistoryClick = {
                 currentScreen = "invoiceHistory"
             },
             onSalesSummaryClick = {
                 currentScreen = "salesSummary"
+            },
+            onCustomersClick = {
+                currentScreen = "customers"
+            },
+            onProductsClick = {
+                currentScreen = "products"
             }
         )
 
@@ -123,6 +132,7 @@ fun BillingApp(db: AppDatabase) {
             onInvoiceClick = {
 
                 selectedInvoiceId = it
+                invoiceDetailsBackTo = "invoiceHistory"
                 currentScreen = "invoiceDetails"
 
             }
@@ -132,7 +142,7 @@ fun BillingApp(db: AppDatabase) {
             invoiceId = selectedInvoiceId,
             onBackClick = {
 
-                currentScreen = "invoiceHistory"
+                currentScreen = invoiceDetailsBackTo
 
             }
         )
@@ -142,94 +152,6 @@ fun BillingApp(db: AppDatabase) {
                 currentScreen = "home"
             }
         )
-    }
-}
-
-@Composable
-fun HomeScreen(
-    onCustomersClick: () -> Unit,
-    onProductsClick: () -> Unit,
-    onNewBillClick: () -> Unit,
-    onInvoiceHistoryClick: () -> Unit,
-    onSalesSummaryClick: () -> Unit
-) {
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp),
-
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-
-        Text(
-            text = "🍰 MONGINIS BILLING",
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        Button(
-            onClick = onNewBillClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(70.dp)
-        ) {
-            Text(
-                text = "🧾 New Bill",
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
-
-        Button(
-            onClick = onInvoiceHistoryClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(70.dp)
-        ) {
-            Text(
-                text = "📜 Invoice History",
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
-
-        Button(
-            onClick = onSalesSummaryClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(70.dp)
-        ) {
-            Text(
-                text = "📊 Sales Summary",
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
-
-        Button(
-            onClick = onCustomersClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(70.dp)
-        ) {
-            Text(
-                text = "👥 Customers",
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
-
-        Button(
-            onClick = onProductsClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(70.dp)
-        ) {
-            Text(
-                text = "🍰 Products",
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
     }
 }
 
