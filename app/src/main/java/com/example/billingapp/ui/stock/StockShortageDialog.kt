@@ -8,7 +8,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.billingapp.ui.theme.LightRed
 
 /**
  * "Out of stock": what is short, and a way to put it right. [onAddStock] opens the Add Stock page
@@ -22,12 +24,14 @@ fun StockShortageDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Out of stock") },
+        title = { Text("Out of stock", color = LightRed) },
         text = {
             Column {
                 Text(
                     text = shortageMessage(shortages),
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = LightRed,
+                    fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = "Add some stock to continue.",

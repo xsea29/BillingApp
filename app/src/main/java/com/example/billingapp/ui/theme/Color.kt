@@ -15,6 +15,9 @@ val Danger = Color(0xFFD03B3B)
 val BarSoft = Color(0xFFDDD5F8)
 val BarPurple = Color(0xFF8E78EE)
 
+// The "Out of stock" message: a lighter red than the error colour.
+val LightRed = Color(0xFFE5484D)
+
 // The price strip on product cards.
 val SoftGreen = Color(0xFFE3F4E8)
 
